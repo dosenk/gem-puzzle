@@ -1,0 +1,22 @@
+{
+  "name": "gem-puzzle",
+  "version": "1.0.0",
+  "description": "gem-pazzle",
+  "main": "./src/app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dosenk/gem-puzzle.git"
+  },
+  "author": "Dmitry Osipenko",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dosenk/gem-puzzle/issues"
+  },
+  "homepage": "https://github.com/dosenk/gem-puzzle#readme",
+  "devDependencies": {
+    "eslint": "^6.8.0"
+  }
+}
