@@ -4,7 +4,7 @@ export default class puzzle {
     }
 
     createPazzle() {
-        let mainContainer = puzzle.createElem('div', [], 'container')
+        let mainContainer = puzzle.createElem('div', [], 'mainContainer')
         let mainContainerSettings = puzzle.createElem('div', [], 'setting')
         mainContainerSettings.innerHTML = `<input class='settingButton' name='settingStart' type='button' value='Размешать и начать'>`
         mainContainerSettings.innerHTML += `<input class='settingButton' name='settingStop' type='button' value='Стоп'>`
@@ -35,9 +35,9 @@ export default class puzzle {
         let sizePuzzle = num === null ? this.size : num;
         let size = Math.pow(sizePuzzle, 2)
         for (let i = 1; i <= size - 1; i++) {
-            let puzzleContainer = puzzle.createElem('div', [['id', `container_${i}`]], 'wrapper_puzzle__container')
+            let puzzleContainer = puzzle.createElem('div', [], 'wrapper_puzzle__container')
             puzzleContainer.classList.add(`col_${sizePuzzle}`)
-            puzzleContainer.innerHTML = `<p class="wrapper_puzzle__container-text">${i}</p>`;
+            puzzleContainer.innerHTML = `<div class="container" id="container_${i}"><p class="wrapper_puzzle__container-text">${i}</p></div>`;
             this.mainContainerWrapperPuzzle.append(puzzleContainer)
         }
         let lastPuzzleContainer = puzzle.createElem('div', [['id', `container_${size}`]], 'wrapper_puzzle__container')
