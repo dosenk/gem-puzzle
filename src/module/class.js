@@ -34,7 +34,20 @@ export default class puzzle {
         mainContainerPuzzleSize.innerHTML += `<a class="size_puzzle" href="#">8x8</a>`
 
         mainContainer.append(mainContainerSettings, mainContainerWrapper, mainContainerPuzzleSize)
-        document.body.append(mainContainer);
+
+        let modal = puzzle.createElem('div', [], 'modal')
+        puzzle.modalWindow = puzzle.createElem('div', [], 'modal_window') //'<div class="modal_window"></div>'
+        puzzle.modalWindow.innerHTML = '<div class="modal_window__info"></div>'
+        let buttonOk = puzzle.createElem('div', [], 'modal_window__ok')
+        buttonOk.innerHTML = '<p>OK</p>'
+        puzzle.modalWindow.append(buttonOk)
+        modal.append(puzzle.modalWindow)
+
+        document.body.append(mainContainer, modal);
+    }
+
+    getSize() {
+        return this.size;   
     }
 
     renderPuzzle(num = null) {
@@ -62,7 +75,7 @@ export default class puzzle {
     }
 
     addListener() {
-        document.querySelector('.puzzleSize').addEventListener('click', (e) => {
+        document.querySelector('.puzzleSize').addEventListener('click', (e) => { 
         document.querySelector('.wrapper_puzzle').removeEventListener('mouseup', puzzle.mouseUp, false)
         clearInterval(puzzle.timer)
         puzzle.minSpan.innerText = '00'
@@ -76,6 +89,13 @@ export default class puzzle {
             // e.target.style = 'cursor: not-allowed;' 
         })
         document.querySelector('.setting').addEventListener('click', puzzle.installSettings, false)
+        document.querySelector('.settingButton').addEventListener('click', puzzle.startGame, false)
+
+        // document.querySelector('.modal_window__ok').addEventListener('click', () => {
+        //     console.log(123)
+
+        //     document.querySelector('.modal').style = 'display: none'
+        // }, false)
     }
 
     static createElem(element, atributes = [], ...classes) {
@@ -164,7 +184,12 @@ export default class puzzle {
                     document.querySelectorAll('.wrapper_puzzle__container p').forEach(res => {
                         resAnswer += res.innerText
                     })
-                    if (this.answer === resAnswer) alert('you are the best !')
+                    if (this.answer === resAnswer) {
+                        clearInterval(puzzle.timer)
+                        // puzzle.modalWindow.append(resAnswer)
+                        puzzle.setResultsGame('getRes')
+                        alert('you are the best !')
+                    }
                 }
             })
         })
@@ -185,7 +210,115 @@ export default class puzzle {
     }
 
     static installSettings(e) {
-        if (e.target.getAttribute('name') === 'settingStart') {
+        if (e.target.getAttribute('name') === 'settingStop') {
+            clearInterval(puzzle.timer)
+            puzzle.stopFlag = true
+            document.querySelector('.wrapper_puzzle').removeEventListener('mouseup', puzzle.mouseUp, false)
+        }
+        if (e.target.getAttribute('name') === 'settingSave') {
+            clearInterval(puzzle.timer)
+
+            // localStorage.clear()
+            if (puzzle.stopFlag) {
+                puzzle.stopFlag = false
+                clearInterval(puzzle.timer)
+                puzzle.setResultsGame('saveRes')
+                alert('Игра сохранена. Для возобновления игры зайдите в результаты - и выберите пунтк "Продолжить сохраненную игру"')
+            } else {
+                alert('Сперва остановите игру!')
+            }
+            
+        }
+        // ############################################################## settingResult ###########################################################
+        if (e.target.getAttribute('name') === 'settingResult') {
+            document.querySelector('.modal').style = 'display: block'
+            let modal_window = document.querySelector('.modal_window__info')
+            modal_window.innerHTML = ''
+            let results = JSON.parse(localStorage.getRes)
+            // console.log(results)
+            
+            results.forEach((res, index) => {
+                let puzzleSize = Math.sqrt(res.puzzleOrder.length)
+                modal_window.innerHTML += `<p>${index + 1}. Поле ${puzzleSize}x${puzzleSize}: Время - ${res.min}:${res.sec}; Шаги - ${res.step}</p>`
+            })
+            modal_window.innerHTML += `<a href="#">Продолжить сохраненную игру</a>`
+
+            document.querySelector('.modal_window__info a').addEventListener('click', () => {
+                clearInterval(puzzle.timer)
+                // document.querySelector('.modal').style = 'display: none'
+                let resN = JSON.parse(localStorage.getItem('saveRes'))
+                let container = document.querySelector('.wrapper_puzzle');
+                puzzle.stepSpan.innerText = resN.step
+                puzzle.minSpan.innerText = resN.min
+                puzzle.secSpan.innerText = resN.sec
+                console.log(resN.puzzleOrder)
+                container.innerHTML = resN.puzzleOrder
+                let settingStart = document.querySelector('.settingButton')
+            
+                document.querySelector('.settingButton').removeEventListener('click', puzzle.startGame, false)
+                settingStart.value = 'ПРОДОЛЖИТЬ'
+
+                settingStart.addEventListener('click', () => {
+                document.querySelector('.wrapper_puzzle').addEventListener('mouseup', puzzle.mouseUp, false)
+                    
+                    let min = Number(puzzle.minSpan.innerText)
+                    let sec = Number(puzzle.secSpan.innerText)
+                    puzzle.timer = setInterval(() => {
+                        sec += 1
+                        if (sec < 10) puzzle.secSpan.innerText = `0${sec}`
+                        else if (sec >= 10 && sec < 60) puzzle.secSpan.innerText = sec
+                        if (sec === 60) {
+                            puzzle.secSpan.innerText = '00'
+                            min += 1
+                            sec = 0
+                            if (min < 10) puzzle.minSpan.innerText = `0${min}`
+                            else if (min >= 10 && min < 60) puzzle.minSpan.innerText = min
+                        }
+                    }, 1000)
+                    settingStart.value = 'Размешать и начать'
+                    document.querySelector('.settingButton').addEventListener('click', puzzle.startGame, false)
+                })
+
+
+
+
+
+                
+            }, false)
+            document.querySelector('.modal_window__ok').addEventListener('click', () => {
+                document.querySelector('.modal').style = 'display: none'
+            }, false)
+        }
+    }
+
+    static setResultsGame(resName) { // 'saveRes', 'getRes'
+        let res = {}
+        res.step = puzzle.stepSpan.innerText
+        res.min = puzzle.minSpan.innerText
+        res.sec = puzzle.secSpan.innerText
+
+        if (resName === 'saveRes') {
+            res.puzzleOrder = document.querySelector('.wrapper_puzzle').innerHTML
+            // document.querySelector('.wrapper_puzzle').forEach(element => {
+            //     console.log(element)
+            //     res.puzzleOrder.push(element) 
+            // }) 
+        }
+        console.log(res)
+        
+        if (resName === 'getRes') {
+            let resN = localStorage.getItem(resName) !== null ? localStorage.getItem(resName) : JSON.stringify([])
+            resN = JSON.parse(resN)
+            if (resN.length >= 10) resN.pop()
+            resN.unshift(res)
+            res = resN
+        }
+        
+        localStorage.setItem(resName, JSON.stringify(res));
+        console.log(localStorage)
+    }
+
+    static startGame() {
             document.querySelector('.wrapper_puzzle').addEventListener('mouseup', puzzle.mouseUp, false)
             // console.log(e.target)
             clearInterval(puzzle.timer)
@@ -215,10 +348,5 @@ export default class puzzle {
                     else if (min >= 10 && min < 60) puzzle.minSpan.innerText = min
                 }
             }, 1000)
-        }
-        if (e.target.getAttribute('name') === 'settingStop') {
-            clearInterval(puzzle.timer)
-            document.querySelector('.wrapper_puzzle').removeEventListener('mouseup', puzzle.mouseUp, false)
-        }
     }
 }
