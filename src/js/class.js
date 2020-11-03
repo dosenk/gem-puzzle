@@ -1,5 +1,5 @@
-export default class puzzle {
-    static answer = ''
+export class puzzle {
+    static answer
     // static step = 0
     static minSpan
     static secSpan 
