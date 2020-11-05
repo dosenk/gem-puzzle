@@ -3,14 +3,16 @@ export default class State {
   constructor() {
     // this.numbers = this.getArray();
     this.edirections = ['D_LEFT', 'D_RIGHT', 'D_UP', 'D_DOWN'];
+    this.visited = new Set();
     // this.numbers = State.getNumbers(puzzleNumbers);
   }
 
   static getHash(numbersArr) {
-    return numbersArr.join('').split('').reduce((a, b) => {
-      a = ((a << 5) - a) + b.charCodeAt(0);
-      return a & a;
-    }, 0);
+    return numbersArr.join(',');
+    // .split('').reduce((a, b) => {
+    //   a = ((a << 5) - a) + b.charCodeAt(0);
+    //   return a & a;
+    // }, 0);
   }
 
   static getNumbers(puzzleNumbers) {
@@ -36,8 +38,8 @@ export default class State {
     return (y * Math.sqrt(length)) + x;
   }
 
-  static move(direction, numbers) { // return pair [bool, [[str], [array]]]
-    const zeroIndex = numbers.indexOf('0');
+  move(direction, numbers) { // return pair [bool, [[str], [array]]]
+    const zeroIndex = numbers.indexOf(0);
     const stateLength = numbers.length;
     const zeroX = State.getX(zeroIndex, stateLength);
     const zeroY = State.getY(zeroIndex, stateLength);
@@ -62,15 +64,22 @@ export default class State {
     // console.log(zeroX, zeroY, stateLength, zeroIndex, index);
     const result1 = numbers.slice(0, zeroIndex).concat(numbers[index])
       .concat(numbers.slice(zeroIndex + 1));
-    const result2 = result1.slice(0, index).concat('0')
+    const result2 = result1.slice(0, index).concat(0)
       .concat(result1.slice(index + 1));
+    // console.log(this.visited);
+    if (this.visited.has(State.getHash(result2))) {
+      return [false, numbers];
+    }
+
     return [true, result2];
   }
 
-  static inversions(arr) {
+  static getInversions(arr) {
+    const arrLength = arr.length;
+    // console.log(arr);
     let count = 0;
-    for (let i = 0; i < arr.length; i += 1) {
-      for (let j = i + 1; j <= arr.length; j += 1) {
+    for (let i = 0; i < arrLength; i += 1) {
+      for (let j = i + 1; j <= arrLength; j += 1) {
         if (arr[i] > arr[j] && (arr[i] !== 0 && arr[j] !== 0)) {
           count += 1;
         }
@@ -79,47 +88,44 @@ export default class State {
     return count;
   }
 
-  static linearConflict(arr, finishArray) {
-    let count = 0;
-    let array = [];
-    let s = -1;
-    let t = -1;
-    for (let i = 0; i < finishArray.length; i += 1) {
-      if (finishArray[i] !== arr[i]) {
-        const getIndexNumber = (number, arr) => {
-          for (let i = 0; i < arr.length; i += 1) {
-            if (arr[i] === number) {
-              return i;
-            }
-          }
-        };
-        const getNumberByPosition = (x, y) => (x * Math.sqrt(arr.length)) + y;
-        const x = Math.trunc(i / Math.sqrt(arr.length));
-        const y = i % Math.sqrt(arr.length);
-        const index = getIndexNumber(finishArray[i], arr);
-        const x1 = Math.trunc(index / Math.sqrt(arr.length));
-        const y1 = index % Math.sqrt(arr.length);
-
-        if (x === x1 && y !== Math.sqrt(arr.length) - 1 && s !== x) {
-          s = x;
-          for (let i = y; i < Math.sqrt(arr.length); i += 1) {
-            array.push(arr[getNumberByPosition(x, i)]);
-          }
-          count += State.inversions(array) * 2;
-          array = [];
+  static getTwoDimensionalArray(arr) {
+    const arrLenght = arr.length;
+    const numOfElem = Math.sqrt(arrLenght);
+    const rowArr = []; // массив строк
+    const colArr = []; // массив столбцов
+    for (let i = 0; i <= numOfElem - 1; i += 1) {
+      const numOfArr = arr.slice(i * numOfElem, (i + 1) * numOfElem);
+      numOfArr.forEach((elem, idx) => {
+        if (i === 0) {
+          colArr.push([]);
+          rowArr.push([]);
         }
-        if (y === y1 && x !== Math.sqrt(arr.length) - 1 && t !== y) {
-          t = y;
-          for (let i = x; i < Math.sqrt(arr.length); i += 1) {
-            array.push(arr[getNumberByPosition(i, y)]);
-          }
-          count += State.inversions(array) * 2;
-          // console.log(inversions(array));
-          array = [];
+        if (State.getX(elem - 1, arrLenght) === idx) {
+          colArr[idx].push(elem);
         }
-      }
+        if (State.getY(elem - 1, arrLenght) === i) {
+          rowArr[i].push(elem);
+        }
+      });
     }
-    return count;
+    return {
+      row: rowArr,
+      col: colArr,
+    };
+  }
+
+  static linearConflict(arr) {
+    let counter = 0;
+    const objArr = State.getTwoDimensionalArray(arr);
+    // console.log(objArr);
+    objArr.col.forEach((elemArr1) => {
+      counter += State.getInversions(elemArr1);
+    });
+    objArr.row.forEach((elemArr2) => {
+      counter += State.getInversions(elemArr2);
+    });
+    // console.log(counter);
+    return counter * 2;
   }
 
   static manhattanDistance(arr) {
@@ -136,30 +142,34 @@ export default class State {
     return count;
   }
 
-  static countInverses(arr) {
-    // если следующая цифра меньше предыдущей - это инверсия, тогда + 1
-    let counter = 0;
-    for (let i = 0; i < arr.length; i += 1) {
-      for (let j = i + 1; j <= arr.length; j += 1) {
-        const ch1 = arr[i];
-        const ch2 = arr[j];
-        if (ch1 === '0' || ch2 === '0') {
-          // eslint-disable-next-line no-continue
-          continue;
-        }
-        if (ch1 > ch2) {
-          counter += 1;
-        }
-      }
-    }
-    return counter;
+  static getPuzzlesOutOfPlace() {
+
   }
+
+  // static countInverses(arr) {
+  //   // если следующая цифра меньше предыдущей - это инверсия, тогда + 1
+  //   let counter = 0;
+  //   for (let i = 0; i < arr.length; i += 1) {
+  //     for (let j = i + 1; j <= arr.length; j += 1) {
+  //       const ch1 = arr[i];
+  //       const ch2 = arr[j];
+  //       if (ch1 === '0' || ch2 === '0') {
+  //         // eslint-disable-next-line no-continue
+  //         continue;
+  //       }
+  //       if (ch1 > ch2) {
+  //         counter += 1;
+  //       }
+  //     }
+  //   }
+  //   return counter;
+  // }
 
   static isSoloble(startStateArray) {
     let result = false;
-    const numOfInversions = State.countInverses(startStateArray);
+    const numOfInversions = State.getInversions(startStateArray);
     const numOfLines = Math.sqrt(startStateArray.length);
-    const zeroIndex = startStateArray.indexOf('0');
+    const zeroIndex = startStateArray.indexOf(0);
     const zeroY = State.getY(zeroIndex, startStateArray.length);
     // console.log(numOfInversions, ' - количество инверсий');
     // console.log(numOfLines, ' - количество строк');
@@ -171,26 +181,27 @@ export default class State {
       // ​​четвертая-последняя и т. д.), а количество инверсий нечетное.
       // - пробел находится в нечетной строке, считая снизу (последняя,
       // ​​третья-последняя, ​​пятая-последняя и т. д.), а количество инверсий четное.
-      if (zeroY % 2 === 0 && numOfInversions % 2 === 1) {
+      if (zeroY % 2 === 0 && numOfInversions % 2 !== 0) {
         result = true;
-      } else if (zeroY % 2 === 1 && numOfInversions % 2 === 0) {
+      } else if (zeroY % 2 !== 0 && numOfInversions % 2 === 0) {
         result = true;
       }
-    } else if (numOfLines % 2 === 1) {
+    } else if (numOfLines % 2 !== 0) {
       // если количество инверсий четное при нечетном количестве строк (поля: 3х3, 5х5, 7х7)
       result = (numOfInversions % 2 === 0);
     }
     return result;
   }
 
-  findPath(startState, finalState) {
+  // #############################################################################
+  async findPath(startState, finalState) {
     if (!State.isSoloble(startState[0])) {
       console.log('Решения не существует');
       return;
     }
-    // startState = [[startState], [path]]
+
     const finalStateHash = State.getHash(finalState);
-    this.visited = new Set();
+
     let earlyQueue = [];
     let queue = [];
     queue.push(startState);
@@ -199,16 +210,16 @@ export default class State {
       earlyQueue = [];
       const firstQueue = queue[0]; // take first element
       // console.log(firstQueue[0]);
-      if (i === 1000) {
-        console.log('много итераций - СБРОС');
-        break;
-      }
       const firstQueueHash = State.getHash(firstQueue[0]);
       this.visited.add(firstQueueHash);
 
+      if (i === 1105) {
+        console.log('много итераций - СБРОС');
+        break;
+      }
       if (finalStateHash === firstQueueHash) {
-        console.log(finalStateHash, firstQueueHash);
-        console.log('Решена за - ', firstQueue[1].length - 1, ' ходов');
+        // console.log(finalStateHash, firstQueueHash);
+        console.log('Решена за - ', firstQueue[1].length, ' ходов');
         console.log('Ходы: ', firstQueue[1]);
         console.log('количество итераций - ', i);
         break;
@@ -216,41 +227,75 @@ export default class State {
 
       // eslint-disable-next-line no-loop-func
       this.edirections.forEach((direction) => {
-        const pair = State.move(direction, firstQueue[0]);
-        // console.log(pair, direction);
+        const pair = this.move(direction, firstQueue[0]);
         if (!pair[0]) return;
-        if (!this.visited.has(State.getHash(pair[1]))) {
-          const path = firstQueue[1].concat(direction);
-          earlyQueue.push([pair[1], path]);
-        }
+        const path = firstQueue[1].concat(direction);
+        earlyQueue.push([pair[1], path]);
       });
-
-      const earlyQueueFiltred = this.getArraysManhMin(earlyQueue, finalState);
-      queue = queue.concat(earlyQueueFiltred);
       queue.shift();
-      // console.log(queue);
+
+      queue = queue.concat(earlyQueue);
+
+      queue = await State.getArraysHeuristics(queue);
       i += 1;
+      console.log(1);
+      // console.log('###############################################################');
     }
   }
 
-  getArraysManhMin(earlyQueue, finishRes) {
+  static async getArraysHeuristics(earlyQueue) {
     const earlyQueueManh = [];
-    const queue = [];
+    const newArr = [];
+    // console.log(earlyQueue);
     earlyQueue.forEach((item) => {
-      const manhDist = State.manhattanDistance(item[0]);
-      const linerConfl = State.linearConflict(item[0], finishRes);
-      earlyQueueManh.push(manhDist + linerConfl);
+      const arr = item[0];
+      const manhDist = State.manhattanDistance(arr);
+      const linerConfl = State.linearConflict(arr);
+      const shotPath = item[1].length;
+      const sumOfHeuristics = shotPath + manhDist + linerConfl;
+      // console.log(shotPath, manhDist, linerConfl);
+      earlyQueueManh.push(sumOfHeuristics);
     });
     const manhMin = Math.min(...earlyQueueManh);
-    // console.log(manhMin);
-    earlyQueueManh.forEach((item, idx) => {
-      if (item === manhMin) {
-        queue.push(earlyQueue[idx]);
-      } else {
-        const itemHash = State.getHash(earlyQueue[idx][0]);
-        this.visited.add(itemHash);
+    // console.log(earlyQueueManh, earlyQueue);
+
+    for (let i = 0; i < earlyQueueManh.length; i += 1) {
+      if (earlyQueueManh[i] === manhMin) {
+        // console.log(earlyQueue[idx], idx);
+        newArr.push(earlyQueue[i]);
       }
-    });
-    return queue;
+      // else {
+      //   const itemHash = State.getHash(earlyQueue[i][0]);
+      //   this.visited.add(itemHash)
+      // }
+    }
+
+    return newArr;
   }
+
+  // getArraysHeuristicsInv(earlyQueue) {
+  //   const earlyQueueManh = [];
+  //   const queue = [];
+  //   // console.log(earlyQueue);
+  //   earlyQueue.forEach((item) => {
+  //     const arr = item[0];
+  //     const manhDist = State.manhattanDistance(arr);
+  //     const linerConfl = State.linearConflict(arr);
+  //     const inversions = State.getInversions(arr);
+  //     const shotPath = item[1].length;
+  //     const sumOfHeuristics = inversions + shotPath + manhDist + linerConfl;
+  //     earlyQueueManh.push(sumOfHeuristics);
+  //   });
+  //   const manhMin = Math.min(...earlyQueueManh);
+  //   // console.log(earlyQueueManh);
+  //   earlyQueueManh.forEach((item, idx) => {
+  //     if (item === manhMin) {
+  //       queue.push(earlyQueue[idx]);
+  //     } else {
+  //       const itemHash = State.getHash(earlyQueue[idx][0]);
+  //       this.visited.add(itemHash);
+  //     }
+  //   });
+  //   return queue;
+  // }
 }
