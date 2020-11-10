@@ -1,28 +1,17 @@
 // import Puzzle from './puzzle'
 export default class State {
   constructor() {
-    // this.numbers = this.getArray();
     this.edirections = ['D_LEFT', 'D_RIGHT', 'D_UP', 'D_DOWN'];
     this.visited = new Set();
-    // this.numbers = State.getNumbers(puzzleNumbers);
+    this.visitedClosed = [];
   }
 
   static getHash(numbersArr) {
     return numbersArr.join(',');
-    // .split('').reduce((a, b) => {
-    //   a = ((a << 5) - a) + b.charCodeAt(0);
-    //   return a & a;
-    // }, 0);
   }
 
   static getNumbers(puzzleNumbers) {
     const numbersStr = puzzleNumbers.join('');
-    // const numbersArr = [];
-    // const puzzleNumbers = document.querySelectorAll('.wrapper_puzzle__container-text');
-    // puzzleNumbers.forEach((p) => {
-    //   numbersStr += p.innerText;
-    //   numbersArr.push(p.innerText);
-    // });
     return [numbersStr, puzzleNumbers];
   }
 
@@ -68,6 +57,7 @@ export default class State {
       .concat(result1.slice(index + 1));
     // console.log(this.visited);
     if (this.visited.has(State.getHash(result2))) {
+      // this.visitedClosed.add(result2);
       return [false, numbers];
     }
 
@@ -76,7 +66,6 @@ export default class State {
 
   static getInversions(arr) {
     const arrLength = arr.length;
-    // console.log(arr);
     let count = 0;
     for (let i = 0; i < arrLength; i += 1) {
       for (let j = i + 1; j <= arrLength; j += 1) {
@@ -117,14 +106,12 @@ export default class State {
   static linearConflict(arr) {
     let counter = 0;
     const objArr = State.getTwoDimensionalArray(arr);
-    // console.log(objArr);
     objArr.col.forEach((elemArr1) => {
       counter += State.getInversions(elemArr1);
     });
     objArr.row.forEach((elemArr2) => {
       counter += State.getInversions(elemArr2);
     });
-    // console.log(counter);
     return counter * 2;
   }
 
@@ -142,112 +129,68 @@ export default class State {
     return count;
   }
 
-  static getPuzzlesOutOfPlace() {
-
-  }
-
-  // static countInverses(arr) {
-  //   // если следующая цифра меньше предыдущей - это инверсия, тогда + 1
-  //   let counter = 0;
-  //   for (let i = 0; i < arr.length; i += 1) {
-  //     for (let j = i + 1; j <= arr.length; j += 1) {
-  //       const ch1 = arr[i];
-  //       const ch2 = arr[j];
-  //       if (ch1 === '0' || ch2 === '0') {
-  //         // eslint-disable-next-line no-continue
-  //         continue;
-  //       }
-  //       if (ch1 > ch2) {
-  //         counter += 1;
-  //       }
-  //     }
-  //   }
-  //   return counter;
-  // }
-
   static isSoloble(startStateArray) {
     let result = false;
     const numOfInversions = State.getInversions(startStateArray);
     const numOfLines = Math.sqrt(startStateArray.length);
     const zeroIndex = startStateArray.indexOf(0);
     const zeroY = State.getY(zeroIndex, startStateArray.length);
-    // console.log(numOfInversions, ' - количество инверсий');
-    // console.log(numOfLines, ' - количество строк');
-    // console.log(zeroIndex, ' - индекс нуля');
-    // console.log(zeroY, ' - позиция Y');
     if (numOfLines % 2 === 0) {
-      // Если numOfLines четно, экземпляр головоломки разрешим, если:
-      // - пробел находится в четной строке, считая снизу (вторая-последняя,
-      // ​​четвертая-последняя и т. д.), а количество инверсий нечетное.
-      // - пробел находится в нечетной строке, считая снизу (последняя,
-      // ​​третья-последняя, ​​пятая-последняя и т. д.), а количество инверсий четное.
       if (zeroY % 2 === 0 && numOfInversions % 2 !== 0) {
         result = true;
       } else if (zeroY % 2 !== 0 && numOfInversions % 2 === 0) {
         result = true;
       }
     } else if (numOfLines % 2 !== 0) {
-      // если количество инверсий четное при нечетном количестве строк (поля: 3х3, 5х5, 7х7)
       result = (numOfInversions % 2 === 0);
     }
-    return result;
+    return !result;
   }
 
   // #############################################################################
   async findPath(startState, finalState) {
-    if (!State.isSoloble(startState[0])) {
+    if (State.isSoloble(startState[0])) {
       console.log('Решения не существует');
-      return;
+      return [false, 'Решения не существует'];
     }
 
     const finalStateHash = State.getHash(finalState);
-
-    let earlyQueue = [];
     let queue = [];
+    let result = [];
     queue.push(startState);
     let i = 0;
     while (queue.length !== 0) {
-      earlyQueue = [];
-      const firstQueue = queue[0]; // take first element
-      // console.log(firstQueue[0]);
-      const firstQueueHash = State.getHash(firstQueue[0]);
+      const firstQueueArr = queue[0]; // take first element
+      const firstQueueHash = State.getHash(firstQueueArr[0]);
       this.visited.add(firstQueueHash);
-
-      if (i === 1105) {
+      if (finalStateHash === firstQueueHash) {
+        result = [true, firstQueueArr[1]];
+        break;
+      }
+      for (let j = 0; j < this.edirections.length; j += 1) {
+        const pair = this.move(this.edirections[j], firstQueueArr[0]);
+        if (pair[0]) {
+          const path = firstQueueArr[1].concat(this.edirections[j]);
+          queue.push([pair[1], path]);
+        }
+      }
+      queue.shift();
+      queue = this.getArraysHeuristics(queue);
+      if (i === 5000) {
         console.log('много итераций - СБРОС');
         break;
       }
-      if (finalStateHash === firstQueueHash) {
-        // console.log(finalStateHash, firstQueueHash);
-        console.log('Решена за - ', firstQueue[1].length, ' ходов');
-        console.log('Ходы: ', firstQueue[1]);
-        console.log('количество итераций - ', i);
-        break;
-      }
-
-      // eslint-disable-next-line no-loop-func
-      this.edirections.forEach((direction) => {
-        const pair = this.move(direction, firstQueue[0]);
-        if (!pair[0]) return;
-        const path = firstQueue[1].concat(direction);
-        earlyQueue.push([pair[1], path]);
-      });
-      queue.shift();
-
-      queue = queue.concat(earlyQueue);
-
-      queue = await State.getArraysHeuristics(queue);
       i += 1;
-      console.log(1);
-      // console.log('###############################################################');
     }
+    return result;
   }
 
-  static async getArraysHeuristics(earlyQueue) {
+  getArraysHeuristics(earlyQueue, flag = true) {
     const earlyQueueManh = [];
     const newArr = [];
     // console.log(earlyQueue);
     earlyQueue.forEach((item) => {
+      // console.log(item);
       const arr = item[0];
       const manhDist = State.manhattanDistance(arr);
       const linerConfl = State.linearConflict(arr);
@@ -256,46 +199,40 @@ export default class State {
       // console.log(shotPath, manhDist, linerConfl);
       earlyQueueManh.push(sumOfHeuristics);
     });
-    const manhMin = Math.min(...earlyQueueManh);
-    // console.log(earlyQueueManh, earlyQueue);
-
-    for (let i = 0; i < earlyQueueManh.length; i += 1) {
-      if (earlyQueueManh[i] === manhMin) {
-        // console.log(earlyQueue[idx], idx);
-        newArr.push(earlyQueue[i]);
-      }
-      // else {
-      //   const itemHash = State.getHash(earlyQueue[i][0]);
-      //   this.visited.add(itemHash)
-      // }
+    const manhMinMax = flag ? Math.min(...earlyQueueManh) : Math.max(...earlyQueueManh);
+    if (flag) {
+      // console.log(manhMinMax, ' - manhMinMax');s
+      // console.log(earlyQueue, ' - inc arr');
     }
 
+    // for (let i = earlyQueueManh.length - 1; i >= 0; i -= 1) {
+    for (let i = 0; i < earlyQueueManh.length; i += 1) {
+      if (earlyQueueManh[i] === manhMinMax) {
+        newArr.push(earlyQueue[i]);
+        // if (!flag) {
+        //   console.log(i);
+        //   console.log(earlyQueue[i]);
+
+        //   // console.log(i);
+        //   this.visitedClosed.splice(i, 1);
+        //   // i -= 1;
+        //   // console.log(earlyQueue);
+        //   // this.visitedClosed = earlyQueue;
+        //   // console.log(this.visitedClosed);
+        // }
+      } else if (flag) {
+        // const itemHash = State.getHash(earlyQueue[i][0]);
+        // console.log(earlyQueue[i]);
+        this.visitedClosed.push(earlyQueue[i]);
+      }
+    }
+    if (!flag) console.log(newArr);
     return newArr;
   }
 
-  // getArraysHeuristicsInv(earlyQueue) {
-  //   const earlyQueueManh = [];
-  //   const queue = [];
-  //   // console.log(earlyQueue);
-  //   earlyQueue.forEach((item) => {
-  //     const arr = item[0];
   //     const manhDist = State.manhattanDistance(arr);
   //     const linerConfl = State.linearConflict(arr);
   //     const inversions = State.getInversions(arr);
   //     const shotPath = item[1].length;
   //     const sumOfHeuristics = inversions + shotPath + manhDist + linerConfl;
-  //     earlyQueueManh.push(sumOfHeuristics);
-  //   });
-  //   const manhMin = Math.min(...earlyQueueManh);
-  //   // console.log(earlyQueueManh);
-  //   earlyQueueManh.forEach((item, idx) => {
-  //     if (item === manhMin) {
-  //       queue.push(earlyQueue[idx]);
-  //     } else {
-  //       const itemHash = State.getHash(earlyQueue[idx][0]);
-  //       this.visited.add(itemHash);
-  //     }
-  //   });
-  //   return queue;
-  // }
 }
