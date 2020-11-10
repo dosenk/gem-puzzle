@@ -1,21 +1,23 @@
+// import { ResolvePlugin } from 'webpack';
+
 export default class Puzzle {
-  static answer
-  static step = 0
-  static minSpan
-  static secSpan
+  // static answer
+  // static step = 0
+  // static minSpan
+  // static secSpan
   // static mainContainerWrapperPuzzle
-  static stepSpan = '0'//document.querySelector('#wrapper_info__steps')
+  // static stepSpan = '0'//document.querySelector('#wrapper_info__steps')
   constructor(size) {
-    this.size = size
-    this.gameState = 'stop' // 'pause', 'play'
+    this.size = size;
+    this.gameState = 'stop'; // 'pause', 'play'
     this.directions = new Map(
-        [
-          ['D_UP', 'top'],
-          ['D_DOWN', 'bottom'],
-          ['D_LEFT', 'left'],
-          ['D_RIGHT', 'right']
-        ]
-      )
+      [
+        ['D_UP', 'top'],
+        ['D_DOWN', 'bottom'],
+        ['D_LEFT', 'left'],
+        ['D_RIGHT', 'right'],
+      ],
+    );
   }
 
   static createElem(element, atributes = [], ...classes) {
@@ -70,7 +72,7 @@ export default class Puzzle {
   }
 
   renderPuzzle(num = null) {
-    this.mainContainerWrapperPuzzle.innerHTML = ''
+    this.mainContainerWrapperPuzzle.innerHTML = '';
     Puzzle.minSpan = document.querySelector('#time_min');
     Puzzle.secSpan = document.querySelector('#time_sec');
     Puzzle.answer = '';
@@ -78,9 +80,9 @@ export default class Puzzle {
     Puzzle.stepSpan.innerText = '0';
 
     const sizePuzzle = num === null ? this.size : num;
-    const size = Math.pow(sizePuzzle, 2);
+    const size = sizePuzzle * sizePuzzle; // Math.pow(sizePuzzle, 2);
     for (let i = 1; i <= size - 1; i += 1) {
-      let attribute = []
+      const attribute = [];
       const puzzleContainer = Puzzle.createElem('div', attribute, 'wrapper_puzzle__container');
       puzzleContainer.classList.add(`col_${sizePuzzle}`);
       puzzleContainer.innerHTML = `<div class="container" id="container_${i}"><p class="wrapper_puzzle__container-text">${i}</p></div>`;
@@ -96,111 +98,109 @@ export default class Puzzle {
   }
 
   addListener() {
-    // document.querySelector('.puzzleSize').addEventListener('click', this.setPuzzleSize.bind(this));
+    // document.querySelector('.puzzleSize').addEventListener('click',
+    //  this.setPuzzleSize.bind(this));
     document.querySelector('.setting').addEventListener('click', this.installSettings.bind(this));
-    this.mainContainerWrapperPuzzle.addEventListener('mousedown', this.dragAndDrop.bind(this))
+    this.mainContainerWrapperPuzzle.addEventListener('mousedown', this.dragAndDrop.bind(this));
     this.mainContainerWrapperPuzzle.addEventListener('mouseup', this.mouseUp.bind(this));
   }
 
   installSettings(e) {
     if (e.target.getAttribute('name') === 'startGame') {
-      this.gameState = 'play'
-    }
-    if (e.target.getAttribute('name') === 'getSolution') {
-      this.gameState = 'pause';
-      this.getSequenceNumbers()
+      this.gameState = 'play';
     }
   }
 
-
-  getSequenceNumbers() {
-    const sequence = []
-    document.querySelectorAll('.wrapper_puzzle__container-text').forEach(number => {
+  static getSequenceNumbers() {
+    const sequence = [];
+    document.querySelectorAll('.wrapper_puzzle__container p').forEach((number) => {
       sequence.push(+number.innerText);
-    })
-    console.log(sequence);
+    });
+    return sequence;
   }
 
-
-
-
-  static getCoords(elem) { 
+  static getCoords(elem) {
     const box = elem.getBoundingClientRect();
+    // eslint-disable-next-line no-restricted-globals
+    const offsetY = pageYOffset;
+    // eslint-disable-next-line no-restricted-globals
+    const offsetX = pageXOffset;
     return {
-      top: box.top + pageYOffset,
-      left: box.left + pageXOffset,
-      width: box.width
+      top: box.top + offsetY,
+      left: box.left + offsetX,
+      width: box.width,
     };
-
   }
+
+  static moveAt(e, selectedContainer, selectedContainerCrdnts, direction, shiftX, shiftY) {
+    const container = selectedContainer;
+    const resY = e.pageY - selectedContainerCrdnts.top - shiftY;
+    const resX = e.pageX - selectedContainerCrdnts.left - shiftX;
+    if (direction === 'D_UP') {
+      container.style.top = `${resY}px`;
+      if (resY < 0) {
+        container.style.top = `${0}px`;
+      }
+      if (resY > selectedContainerCrdnts.width) {
+        container.style.top = `${selectedContainerCrdnts.width}px`;
+      }
+    } else if (direction === 'D_DOWN') {
+      container.style.top = `${resY}px`;
+      if (resY > 0) {
+        container.style.top = `${0}px`;
+      }
+      if (resY < -selectedContainerCrdnts.width) {
+        container.style.top = `${-selectedContainerCrdnts.width}px`;
+      }
+    } else if (direction === 'D_LEFT') {
+      container.style.left = `${resX}px`;
+      if (resX < 0) {
+        container.style.left = `${0}px`;
+      }
+      if (resX > selectedContainerCrdnts.width) {
+        container.style.left = `${selectedContainerCrdnts.width}px`;
+      }
+    } else if (direction === 'D_RIGHT') {
+      container.style.left = `${resX}px`;
+      if (resX > 0) {
+        container.style.left = `${0}px`;
+      }
+      if (resX < -selectedContainerCrdnts.width) {
+        container.style.left = `${-selectedContainerCrdnts.width}px`;
+      }
+    }
+  }
+
   dragAndDrop(e) {
     if (e.target.closest('.container') && this.gameState === 'play') {
-      const selectedContainer = e.target.closest('.container')
+      const selectedContainer = e.target.closest('.container');
       const emptyContainer = document.querySelector('#last_container');
-      const direction = Puzzle.getDirection(selectedContainer, emptyContainer)
+      const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
       const selectedContainerCrdnts = Puzzle.getCoords(selectedContainer);
-      let shiftX = e.pageX - selectedContainerCrdnts.left;
-      let shiftY = e.pageY - selectedContainerCrdnts.top;
-      function moveAt(e) {
-        let resY = e.pageY - selectedContainerCrdnts.top - shiftY
-        let resX = e.pageX - selectedContainerCrdnts.left - shiftX
-        if (direction === 'D_UP') {
-          selectedContainer.style.top = resY + 'px';
-          if (resY < 0) {
-            selectedContainer.style.top = 0 + 'px'
-          }
-          if (resY > selectedContainerCrdnts.width) {
-            selectedContainer.style.top = selectedContainerCrdnts.width + 'px'
-          }
-        } else if(direction === 'D_DOWN') {
-          selectedContainer.style.top = resY + 'px';
-          if (resY > 0) {
-            selectedContainer.style.top = 0 + 'px'
-          }
-          if (resY < -selectedContainerCrdnts.width) {
-            selectedContainer.style.top = - selectedContainerCrdnts.width + 'px'
-          }
-        } else if(direction === 'D_LEFT') {
-          selectedContainer.style.left = resX + 'px';
-          if (resX < 0) {
-            selectedContainer.style.left = 0 + 'px'
-          }
-          if (resX > selectedContainerCrdnts.width) {
-            selectedContainer.style.left = selectedContainerCrdnts.width + 'px'
-          }
-        } else if(direction === 'D_RIGHT') {
-          selectedContainer.style.left = resX + 'px';
-          if (resX > 0) {
-            selectedContainer.style.left = 0 + 'px'
-          }
-          if (resX < -selectedContainerCrdnts.width) {
-            selectedContainer.style.left = - selectedContainerCrdnts.width + 'px'
-          }
-        }
-        
-      }
+      const shiftX = e.pageX - selectedContainerCrdnts.left;
+      const shiftY = e.pageY - selectedContainerCrdnts.top;
       selectedContainer.style.zIndex = 1000;
-      moveAt(e)
-      document.onmousemove = function(e) {
-        moveAt(e);
-      }
-      selectedContainer.onmouseup = function() {
+      Puzzle.moveAt(e, selectedContainer, selectedContainerCrdnts, direction, shiftX, shiftY);
+      document.onmousemove = function (event) {
+        Puzzle.moveAt(event, selectedContainer, selectedContainerCrdnts, direction, shiftX, shiftY);
+      };
+      selectedContainer.onmouseup = function () {
         document.onmousemove = null;
         selectedContainer.onmouseup = null;
-      }
-      selectedContainer.ondragstart = function() {
+      };
+      selectedContainer.ondragstart = function () {
         return false;
       };
     }
   }
-  
+
   setPuzzleSize(e) {
-      clearInterval(Puzzle.timer);
-      Puzzle.minSpan.innerText = '00';
-      Puzzle.secSpan.innerText = '00';
-      if (e.target.classList.contains('size_puzzle')) {
-        this.renderPuzzle(e.target.innerText[0]);
-      }
+    clearInterval(Puzzle.timer);
+    Puzzle.minSpan.innerText = '00';
+    Puzzle.secSpan.innerText = '00';
+    if (e.target.classList.contains('size_puzzle')) {
+      this.renderPuzzle(e.target.innerText[0]);
+    }
   }
 
   mouseUp(e) {
@@ -208,109 +208,97 @@ export default class Puzzle {
     if (e.target.closest('.container') && this.gameState === 'play') {
       const selectedContainer = e.target.closest('.container');
       const emptyContainer = document.querySelector('#last_container');
-      const direction = Puzzle.getDirection(selectedContainer, emptyContainer)
-      if (direction.length > 0) this.moveContainer(selectedContainer, emptyContainer, direction); 
+      const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
+      if (direction.length > 0) this.moveContainer(selectedContainer, emptyContainer, direction);
     }
   }
 
   static getDirection(selectedContainer, emptyContainer) {
-      let direction = ''
-      const selectedContainerCrdnts = Puzzle.getCoords(selectedContainer);
-      const emptyContainerCrdnts = Puzzle.getCoords(emptyContainer);
-      const resTop = Math.floor(selectedContainerCrdnts.top - emptyContainerCrdnts.top);
-      const resLeft = Math.floor(selectedContainerCrdnts.left - emptyContainerCrdnts.left);
-      if (selectedContainerCrdnts.left === emptyContainerCrdnts.left) {
-        if (resTop <= 0 && resTop >= -Math.floor(selectedContainerCrdnts.width)) {
-          direction = 'D_UP'
-        }
-        if (resTop >= 0 && resTop <= Math.floor(selectedContainerCrdnts.width)) {
-          direction = 'D_DOWN'
-        }
+    let direction = '';
+    const selectedContainerCrdnts = Puzzle.getCoords(selectedContainer);
+    const emptyContainerCrdnts = Puzzle.getCoords(emptyContainer);
+    const resTop = Math.floor(selectedContainerCrdnts.top - emptyContainerCrdnts.top);
+    const resLeft = Math.floor(selectedContainerCrdnts.left - emptyContainerCrdnts.left);
+    if (selectedContainerCrdnts.left === emptyContainerCrdnts.left) {
+      if (resTop <= 0 && resTop >= -Math.floor(selectedContainerCrdnts.width)) {
+        direction = 'D_UP';
       }
-      if (selectedContainerCrdnts.top === emptyContainerCrdnts.top) {
-        if (resLeft <= 0 && resLeft >= -Math.floor(selectedContainerCrdnts.width)) {
-          direction = 'D_LEFT'
-        }
-        if (resLeft >= 0 && resLeft <= Math.floor(selectedContainerCrdnts.width)) {
-          direction = 'D_RIGHT'
-        }
+      if (resTop >= 0 && resTop <= Math.floor(selectedContainerCrdnts.width)) {
+        direction = 'D_DOWN';
       }
-      return direction;
+    }
+    if (selectedContainerCrdnts.top === emptyContainerCrdnts.top) {
+      if (resLeft <= 0 && resLeft >= -Math.floor(selectedContainerCrdnts.width)) {
+        direction = 'D_LEFT';
+      }
+      if (resLeft >= 0 && resLeft <= Math.floor(selectedContainerCrdnts.width)) {
+        direction = 'D_RIGHT';
+      }
+    }
+    return direction;
   }
 
-  moveContainer(container, emptyContainer, direction) {
-    let offset = 0
+  async moveContainer(container, emptyContainer, direction) {
+    let offset = 0;
+    let answer = [];
+    const cntnr = container;
     // let verticalOffset, horisontalOffset = false
     if (direction === 'D_UP' || direction === 'D_DOWN') {
       offset = Math.abs(+container.style.top.slice(0, -2));
       // verticalOffset = true;
     }
     if (direction === 'D_LEFT' || direction === 'D_RIGHT') {
-      offset = Math.abs(+container.style.left.slice(0, -2));
+      offset = Math.abs(+cntnr.style.left.slice(0, -2));
       // horisontalOffset = true
     }
-    console.log(offset, Puzzle.getCoords(container).width / 2);
-    if (offset < Puzzle.getCoords(container).width / 2) {
+    // console.log(offset, Puzzle.getCoords(container).width / 2);
+    if (offset < Puzzle.getCoords(cntnr).width / 2) {
       // if (verticalOffset) direction = direction === 'D_UP' ? 'D_DOWN' : 'D_UP'
       // if (horisontalOffset) direction = direction === 'D_LEFT' ? 'D_RIGHT' : 'D_LEFT'
     }
     const start = Date.now();
-    const timer = setInterval(() => {
-      const timePassed = Date.now() - start;
-      if (timePassed >= 500) {
-      clearInterval(timer);
-      return;
-    } 
-  
-      // console.log(topOffset, timePassed);
-      container.style = `z-index: 1000; ${this.directions.get(direction)}: ${offset + (timePassed / 4)}px`;
-      // console.log(container.style.top);
+    const promise = new Promise((resolve) => {
+      let result;
+      const timer = setInterval(() => {
+        const timePassed = Date.now() - start;
+        if (timePassed >= 500) {
+          clearInterval(timer);
+          return;
+        }
+        cntnr.style = `z-index: 1000; ${this.directions.get(direction)}: ${offset + (timePassed / 4)}px`;
 
-      // const promise = new Promise((resolve, reject) => {
-        let result;
         if (direction === 'D_UP') {
           if (emptyContainer.getBoundingClientRect().top <= container.getBoundingClientRect().top) {
             result = Puzzle.checkPositionActiveContainer(container, emptyContainer, timer);
+            resolve(result);
           }
         }
         if (direction === 'D_DOWN') {
-          
           if (Math.floor(emptyContainer.getBoundingClientRect().top)
           >= Math.floor(container.getBoundingClientRect().top)) {
             result = Puzzle.checkPositionActiveContainer(container, emptyContainer, timer);
+            resolve(result);
           }
         }
         if (direction === 'D_LEFT') {
           if (emptyContainer.getBoundingClientRect().left
           <= container.getBoundingClientRect().left) {
             result = Puzzle.checkPositionActiveContainer(container, emptyContainer, timer);
+            resolve(result);
           }
         }
         if (direction === 'D_RIGHT') {
           if (emptyContainer.getBoundingClientRect().left
           >= container.getBoundingClientRect().left) {
             result = Puzzle.checkPositionActiveContainer(container, emptyContainer, timer);
+            resolve(result);
           }
         }
-        // setTimeout(() => resolve(result), 20);
-      // });
-
-
-      // let resAnswer = '';
-      // promise.then((result) => {
-      //   if (result === true) {
-      //     document.querySelectorAll('.wrapper_puzzle__container p').forEach((res) => {
-      //       resAnswer += res.innerText;
-      //     });
-      //     if (this.answer === resAnswer) {
-      //       clearInterval(Puzzle.timer);
-      //       // Puzzle.modalWindow.append(resAnswer)
-      //       Puzzle.setResultsGame('getRes');
-      //       alert('you are the best !');
-      //     }
-      //   }
-      // });
+      });
     });
+    // const resultFlag = await promise;
+    if (await promise) answer = Puzzle.getSequenceNumbers();
+    return answer;
   }
 
   static checkPositionActiveContainer(container, emptyContainer, timer) {
@@ -324,7 +312,7 @@ export default class Puzzle {
     emptyContainer.append(container);
     clearInterval(timer);
     document.querySelector('.wrapper_puzzle').addEventListener('mouseup', this.mouseUp);
-   
+
     return true;
   }
 
@@ -338,78 +326,79 @@ export default class Puzzle {
   //     this.mainContainerWrapperPuzzle.removeEventListener('mouseup', this.mouseUp);
   //   }
 
-    // if (e.target.getAttribute('name') === 'settingStop') {
-    //   clearInterval(Puzzle.timer);
-    //   Puzzle.stopFlag = true;
-    //   this.mainContainerWrapperPuzzle.removeEventListener('mouseup', this.mouseUp);
-    // }
-    // if (e.target.getAttribute('name') === 'settingSave') {
-    //   clearInterval(Puzzle.timer);
+  // if (e.target.getAttribute('name') === 'settingStop') {
+  //   clearInterval(Puzzle.timer);
+  //   Puzzle.stopFlag = true;
+  //   this.mainContainerWrapperPuzzle.removeEventListener('mouseup', this.mouseUp);
+  // }
+  // if (e.target.getAttribute('name') === 'settingSave') {
+  //   clearInterval(Puzzle.timer);
 
-    //   // localStorage.clear()
-    //   if (Puzzle.stopFlag) {
-    //     Puzzle.stopFlag = false;
-    //     clearInterval(Puzzle.timer);
-    //     Puzzle.setResultsGame('saveRes');
-    //     alert('Игра сохранена. Для возобновления игры зайдите в результаты -'
-    //     + 'и выберите пунтк "Продолжить сохраненную игру"');
-    //   } else {
-    //     alert('Сперва остановите игру!');
-    //   }
-    // }
-    // ###################################### settingResult ###################################
-    // if (e.target.getAttribute('name') === 'settingResult') {
-    //   document.querySelector('.modal').style = 'display: block';
-    //   const modal_window = document.querySelector('.modal_window__info');
-    //   modal_window.innerHTML = '';
-    //   const results = JSON.parse(localStorage.getRes);
-    //   // console.log(results)
+  //   // localStorage.clear()
+  //   if (Puzzle.stopFlag) {
+  //     Puzzle.stopFlag = false;
+  //     clearInterval(Puzzle.timer);
+  //     Puzzle.setResultsGame('saveRes');
+  //     alert('Игра сохранена. Для возобновления игры зайдите в результаты -'
+  //     + 'и выберите пунтк "Продолжить сохраненную игру"');
+  //   } else {
+  //     alert('Сперва остановите игру!');
+  //   }
+  // }
+  // ###################################### settingResult ###################################
+  // if (e.target.getAttribute('name') === 'settingResult') {
+  //   document.querySelector('.modal').style = 'display: block';
+  //   const modal_window = document.querySelector('.modal_window__info');
+  //   modal_window.innerHTML = '';
+  //   const results = JSON.parse(localStorage.getRes);
+  //   // console.log(results)
 
-    //   results.forEach((res, index) => {
-    //     const puzzleSize = Math.sqrt(res.puzzleOrder.length);
-    //     modal_window.innerHTML += `<p>${index + 1}. Поле ${puzzleSize}x${puzzleSize}: Время - ${res.min}:${res.sec}; Шаги - ${res.step}</p>`;
-    //   });
-    //   modal_window.innerHTML += '<a href="#">Продолжить сохраненную игру</a>';
+  //   results.forEach((res, index) => {
+  //     const puzzleSize = Math.sqrt(res.puzzleOrder.length);
+  //     modal_window.innerHTML += `<p>${index + 1}. Поле ${puzzleSize}x${puzzleSize}:
+  // Время - ${res.min}:${res.sec}; Шаги - ${res.step}</p>`;
+  //   });
+  //   modal_window.innerHTML += '<a href="#">Продолжить сохраненную игру</a>';
 
-    //   document.querySelector('.modal_window__info a').addEventListener('click', () => {
-    //     clearInterval(Puzzle.timer);
-    //     // document.querySelector('.modal').style = 'display: none'
-    //     const resN = JSON.parse(localStorage.getItem('saveRes'));
-    //     const container = document.querySelector('.wrapper_puzzle');
-    //     Puzzle.stepSpan.innerText = resN.step;
-    //     Puzzle.minSpan.innerText = resN.min;
-    //     Puzzle.secSpan.innerText = resN.sec;
-    //     console.log(resN.puzzleOrder);
-    //     container.innerHTML = resN.puzzleOrder;
-    //     const settingStart = document.querySelector('.settingButton');
+  //   document.querySelector('.modal_window__info a').addEventListener('click', () => {
+  //     clearInterval(Puzzle.timer);
+  //     // document.querySelector('.modal').style = 'display: none'
+  //     const resN = JSON.parse(localStorage.getItem('saveRes'));
+  //     const container = document.querySelector('.wrapper_puzzle');
+  //     Puzzle.stepSpan.innerText = resN.step;
+  //     Puzzle.minSpan.innerText = resN.min;
+  //     Puzzle.secSpan.innerText = resN.sec;
+  //     console.log(resN.puzzleOrder);
+  //     container.innerHTML = resN.puzzleOrder;
+  //     const settingStart = document.querySelector('.settingButton');
 
-    //     document.querySelector('.settingButton').removeEventListener('click', this.startGame);
-    //     settingStart.value = 'ПРОДОЛЖИТЬ';
+  //     document.querySelector('.settingButton').removeEventListener('click', this.startGame);
+  //     settingStart.value = 'ПРОДОЛЖИТЬ';
 
-    //     settingStart.addEventListener('click', () => {
+  //     settingStart.addEventListener('click', () => {
 
-    //       let min = Number(Puzzle.minSpan.innerText);
-    //       let sec = Number(Puzzle.secSpan.innerText);
-    //       Puzzle.timer = setInterval(() => {
-    //         sec += 1;
-    //         if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
-    //         else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
-    //         if (sec === 60) {
-    //           Puzzle.secSpan.innerText = '00';
-    //           min += 1;
-    //           sec = 0;
-    //           if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
-    //           else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
-    //         }
-    //       }, 1000);
-    //       settingStart.value = 'Размешать и начать';
-    //       document.querySelector('.settingButton').addEventListener('click', this.startGame);
-    //     });
-    //   }, false);
-    //   document.querySelector('.modal_window__ok').addEventListener('click', () => {
-    //     document.querySelector('.modal').style = 'display: none';
-    //   }, false);
-    // }
+  //       let min = Number(Puzzle.minSpan.innerText);
+  //       let sec = Number(Puzzle.secSpan.innerText);
+  //       Puzzle.timer = setInterval(() => {
+  //         sec += 1;
+  //         if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
+  //         else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
+  //         if (sec === 60) {
+  //           Puzzle.secSpan.innerText = '00';
+  //           min += 1;
+  //           sec = 0;
+  //           if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
+  //           else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
+  //         }
+  //       }, 1000);
+  //       settingStart.value = 'Размешать и начать';
+  //       document.querySelector('.settingButton').addEventListener('click', this.startGame);
+  //     });
+  //   }, false);
+  //   document.querySelector('.modal_window__ok').addEventListener('click', () => {
+  //     document.querySelector('.modal').style = 'display: none';
+  //   }, false);
+  // }
   // }
 
   // static setResultsGame(resName) { // 'saveRes', 'getRes'
@@ -442,7 +431,7 @@ export default class Puzzle {
   // }
 
   startGame() {
-    this.gameState = 'play'
+    this.gameState = 'play';
     // clearInterval(Puzzle.timer);
     // Puzzle.stepSpan.innerText = '0';
     // const arrauDiv = [];

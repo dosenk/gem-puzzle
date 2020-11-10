@@ -1,9 +1,49 @@
+/* eslint-disable import/no-named-as-default */
+// eslint-disable-next-line import/no-named-as-default-member
+import Puzzle from './Puzzle';
+
 // import Puzzle from './puzzle'
-export default class State {
+export default class State extends Puzzle {
   constructor() {
+    super();
     this.edirections = ['D_LEFT', 'D_RIGHT', 'D_UP', 'D_DOWN'];
     this.visited = new Set();
     this.visitedClosed = [];
+  }
+
+  addListenerState() {
+    document.querySelector('.setting').addEventListener('click', this.doCorrectSolution.bind(this));
+  }
+
+  async doCorrectSolution(e) {
+    if (e.target.getAttribute('name') === 'getSolution') {
+      this.gameState = 'pause';
+      const numbers = Puzzle.getSequenceNumbers();
+      const trueSolution = [1, 2, 3, 4,
+        5, 6, 7, 8,
+        9, 10, 11, 12,
+        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 0];
+      // console.log(numbers);
+      const solution = await this.findPath([numbers, []], trueSolution);
+      console.log(solution, numbers);
+      await this.moveContainerSolution(solution[1], numbers);
+    }
+  }
+
+  async moveContainerSolution(path, numbers) {
+    let nums = numbers;
+    if (path.length > 0) {
+      const direction = path.shift();
+      const emptyContainer = document.querySelector('#last_container');
+      const zeroIndex = numbers.indexOf(0);
+      const stateLength = numbers.length;
+      const zeroX = State.getX(zeroIndex, stateLength);
+      const zeroY = State.getY(zeroIndex, stateLength);
+      const index = State.getIndexByDirection(direction, zeroX, zeroY, stateLength);
+      const selectedContainer = document.querySelector(`#container_${numbers[index]}`);
+      nums = await this.moveContainer(selectedContainer, emptyContainer, direction);
+      this.moveContainerSolution(path, nums);
+    }
   }
 
   static getHash(numbersArr) {
@@ -27,6 +67,20 @@ export default class State {
     return (y * Math.sqrt(length)) + x;
   }
 
+  static getIndexByDirection(direction, zeroX, zeroY, stateLength) {
+    let index = 0;
+    if (direction === 'D_LEFT') {
+      index = State.getIndex(zeroX - 1, zeroY, stateLength);
+    } else if (direction === 'D_RIGHT') {
+      index = State.getIndex(zeroX + 1, zeroY, stateLength);
+    } else if (direction === 'D_UP') {
+      index = State.getIndex(zeroX, zeroY - 1, stateLength);
+    } else if (direction === 'D_DOWN') {
+      index = State.getIndex(zeroX, zeroY + 1, stateLength);
+    }
+    return index;
+  }
+
   move(direction, numbers) { // return pair [bool, [[str], [array]]]
     const zeroIndex = numbers.indexOf(0);
     const stateLength = numbers.length;
@@ -40,16 +94,7 @@ export default class State {
     || (direction === 'D_UP' && zeroY === 0)) {
       return [false, numbers];
     }
-    let index = 0;
-    if (direction === 'D_LEFT') {
-      index = State.getIndex(zeroX - 1, zeroY, stateLength);
-    } else if (direction === 'D_RIGHT') {
-      index = State.getIndex(zeroX + 1, zeroY, stateLength);
-    } else if (direction === 'D_UP') {
-      index = State.getIndex(zeroX, zeroY - 1, stateLength);
-    } else if (direction === 'D_DOWN') {
-      index = State.getIndex(zeroX, zeroY + 1, stateLength);
-    }
+    const index = State.getIndexByDirection(direction, zeroX, zeroY, stateLength);
     // console.log(zeroX, zeroY, stateLength, zeroIndex, index);
     const result1 = numbers.slice(0, zeroIndex).concat(numbers[index])
       .concat(numbers.slice(zeroIndex + 1));
@@ -161,6 +206,7 @@ export default class State {
     let i = 0;
     while (queue.length !== 0) {
       const firstQueueArr = queue[0]; // take first element
+      // console.log(firstQueueArr);
       const firstQueueHash = State.getHash(firstQueueArr[0]);
       this.visited.add(firstQueueHash);
       if (finalStateHash === firstQueueHash) {
@@ -176,7 +222,7 @@ export default class State {
       }
       queue.shift();
       queue = this.getArraysHeuristics(queue);
-      if (i === 5000) {
+      if (i === 20000) {
         console.log('много итераций - СБРОС');
         break;
       }
