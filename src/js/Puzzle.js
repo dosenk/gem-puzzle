@@ -18,6 +18,7 @@ export default class Puzzle {
         ['D_RIGHT', 'right'],
       ],
     );
+    this.movePuzzle = false;
   }
 
   static createElem(element, atributes = [], ...classes) {
@@ -105,12 +106,6 @@ export default class Puzzle {
     this.mainContainerWrapperPuzzle.addEventListener('mouseup', this.mouseUp.bind(this));
   }
 
-  installSettings(e) {
-    if (e.target.getAttribute('name') === 'startGame') {
-      this.gameState = 'play';
-    }
-  }
-
   static getSequenceNumbers() {
     const sequence = [];
     document.querySelectorAll('.wrapper_puzzle__container p').forEach((number) => {
@@ -132,7 +127,7 @@ export default class Puzzle {
     };
   }
 
-  static moveAt(e, selectedContainer, selectedContainerCrdnts, direction, shiftX, shiftY) {
+  static checkPostn(e, selectedContainer, selectedContainerCrdnts, direction, shiftX, shiftY) {
     const container = selectedContainer;
     const resY = e.pageY - selectedContainerCrdnts.top - shiftY;
     const resX = e.pageX - selectedContainerCrdnts.left - shiftX;
@@ -171,8 +166,9 @@ export default class Puzzle {
     }
   }
 
-  dragAndDrop(e) {
+  async dragAndDrop(e) {
     if (e.target.closest('.container') && this.gameState === 'play') {
+      this.mainContainerWrapperPuzzle.removeEventListener('mouseup', this.mouseUp); // not WORKING ! ! ! ! ! ! ! ! ! ! !
       const selectedContainer = e.target.closest('.container');
       const emptyContainer = document.querySelector('#last_container');
       const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
@@ -180,17 +176,21 @@ export default class Puzzle {
       const shiftX = e.pageX - selectedContainerCrdnts.left;
       const shiftY = e.pageY - selectedContainerCrdnts.top;
       selectedContainer.style.zIndex = 1000;
-      Puzzle.moveAt(e, selectedContainer, selectedContainerCrdnts, direction, shiftX, shiftY);
-      document.onmousemove = function (event) {
-        Puzzle.moveAt(event, selectedContainer, selectedContainerCrdnts, direction, shiftX, shiftY);
+      document.onmousemove = (event) => {
+        Puzzle.checkPostn(
+          event,
+          selectedContainer,
+          selectedContainerCrdnts,
+          direction, shiftX, shiftY,
+        );
       };
-      selectedContainer.onmouseup = function () {
+
+      document.onmouseup = async () => {
+        // await this.moveContainer(selectedContainer, emptyContainer, direction);
         document.onmousemove = null;
         selectedContainer.onmouseup = null;
       };
-      selectedContainer.ondragstart = function () {
-        return false;
-      };
+      selectedContainer.ondragstart = () => false;
     }
   }
 
@@ -204,7 +204,6 @@ export default class Puzzle {
   }
 
   mouseUp(e) {
-    // console.log(this.gameState);
     if (e.target.closest('.container') && this.gameState === 'play') {
       const selectedContainer = e.target.closest('.container');
       const emptyContainer = document.querySelector('#last_container');
@@ -239,6 +238,8 @@ export default class Puzzle {
   }
 
   async moveContainer(container, emptyContainer, direction) {
+    // this.gameState = 'pause';
+    // console.log(this.gameState);
     let offset = 0;
     let answer = [];
     const cntnr = container;
@@ -298,6 +299,8 @@ export default class Puzzle {
     });
     // const resultFlag = await promise;
     if (await promise) answer = Puzzle.getSequenceNumbers();
+    // this.gameState = 'play';
+    // console.log(this.gameState);
     return answer;
   }
 
@@ -314,6 +317,51 @@ export default class Puzzle {
     document.querySelector('.wrapper_puzzle').addEventListener('mouseup', this.mouseUp);
 
     return true;
+  }
+
+  static setTime(s, m, h) {
+    //  clearInterval(Puzzle.timer);
+    Puzzle.stepSpan.innerText = '0';
+    const arrauDiv = [];
+    document.querySelectorAll('.wrapper_puzzle__container ').forEach((elem) => {
+      arrauDiv.push(elem);
+      elem.remove();
+    });
+    arrauDiv.sort(() => Math.random() - 0.5);
+    arrauDiv.forEach((elem) => {
+      this.mainContainerWrapperPuzzle.append(elem);
+    });
+    Puzzle.minSpan.innerText = '00';
+    Puzzle.secSpan.innerText = '00';
+    let min = 0;
+    let sec = 0;
+    setInterval(() => {
+      sec += 1;
+      if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
+      else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
+      if (sec === 60) {
+        Puzzle.secSpan.innerText = '00';
+        min += 1;
+        sec = 0;
+        if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
+        else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
+      }
+    }, 1000, s, m, h);
+  }
+
+  installSettings(e) {
+    if (e.target.getAttribute('name') === 'startGame') {
+      this.gameState = 'play';
+      const arrauDiv = [];
+      document.querySelectorAll('.wrapper_puzzle__container ').forEach((elem) => {
+        arrauDiv.push(elem);
+        elem.remove();
+      });
+      arrauDiv.sort(() => Math.random() - 0.5);
+      arrauDiv.forEach((elem) => {
+        this.mainContainerWrapperPuzzle.append(elem);
+      });
+    }
   }
 
   // installSettings(e) {
@@ -379,18 +427,18 @@ export default class Puzzle {
 
   //       let min = Number(Puzzle.minSpan.innerText);
   //       let sec = Number(Puzzle.secSpan.innerText);
-  //       Puzzle.timer = setInterval(() => {
-  //         sec += 1;
-  //         if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
-  //         else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
-  //         if (sec === 60) {
-  //           Puzzle.secSpan.innerText = '00';
-  //           min += 1;
-  //           sec = 0;
-  //           if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
-  //           else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
-  //         }
-  //       }, 1000);
+  // Puzzle.timer = setInterval(() => {
+  //   sec += 1;
+  //   if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
+  //   else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
+  //   if (sec === 60) {
+  //     Puzzle.secSpan.innerText = '00';
+  //     min += 1;
+  //     sec = 0;
+  //     if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
+  //     else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
+  //   }
+  // }, 1000);
   //       settingStart.value = 'Размешать и начать';
   //       document.querySelector('.settingButton').addEventListener('click', this.startGame);
   //     });

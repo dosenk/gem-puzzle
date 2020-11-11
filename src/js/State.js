@@ -22,11 +22,17 @@ export default class State extends Puzzle {
       const trueSolution = [1, 2, 3, 4,
         5, 6, 7, 8,
         9, 10, 11, 12,
-        13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 0];
-      // console.log(numbers);
-      const solution = await this.findPath([numbers, []], trueSolution);
-      console.log(solution, numbers);
-      await this.moveContainerSolution(solution[1], numbers);
+        13, 14, 15, 0];
+      console.log(numbers);
+      const result = await this.findPath([numbers, []], trueSolution);
+      // console.log(solution);
+      const solutionDirections = await result;
+      console.log(solutionDirections);
+      if (solutionDirections[0]) {
+        await this.moveContainerSolution(solutionDirections[1], numbers);
+      } else {
+        console.log(solutionDirections[1]);
+      }
     }
   }
 
@@ -195,16 +201,17 @@ export default class State extends Puzzle {
   // #############################################################################
   async findPath(startState, finalState) {
     if (State.isSoloble(startState[0])) {
-      console.log('Решения не существует');
       return [false, 'Решения не существует'];
     }
 
     const finalStateHash = State.getHash(finalState);
     let queue = [];
+    let earlyQueue = [];
     let result = [];
     queue.push(startState);
     let i = 0;
     while (queue.length !== 0) {
+      earlyQueue = [];
       const firstQueueArr = queue[0]; // take first element
       // console.log(firstQueueArr);
       const firstQueueHash = State.getHash(firstQueueArr[0]);
@@ -217,17 +224,20 @@ export default class State extends Puzzle {
         const pair = this.move(this.edirections[j], firstQueueArr[0]);
         if (pair[0]) {
           const path = firstQueueArr[1].concat(this.edirections[j]);
-          queue.push([pair[1], path]);
+          earlyQueue.push([pair[1], path]);
         }
       }
       queue.shift();
-      queue = this.getArraysHeuristics(queue);
-      if (i === 20000) {
-        console.log('много итераций - СБРОС');
+      queue = queue.concat(this.getArraysHeuristics(earlyQueue));
+      // console.log(earlyQueue, i);
+
+      if (i === 100000) {
+        result = [false, `много итераций - СБРОС, i = ${i}`];
         break;
       }
       i += 1;
     }
+    console.log(queue, i);
     return result;
   }
 
@@ -241,7 +251,7 @@ export default class State extends Puzzle {
       const manhDist = State.manhattanDistance(arr);
       const linerConfl = State.linearConflict(arr);
       const shotPath = item[1].length;
-      const sumOfHeuristics = shotPath + manhDist + linerConfl;
+      const sumOfHeuristics = manhDist + linerConfl + shotPath;
       // console.log(shotPath, manhDist, linerConfl);
       earlyQueueManh.push(sumOfHeuristics);
     });

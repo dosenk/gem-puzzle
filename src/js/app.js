@@ -3,7 +3,7 @@ import Puzzle from './Puzzle';
 import State from './State';
 
 window.onload = async () => {
-  const size = '5';
+  const size = '4';
   const gemPuzzle = new Puzzle(size);
   gemPuzzle.createPazzle();
   gemPuzzle.renderPuzzle();
