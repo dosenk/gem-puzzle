@@ -9,6 +9,6 @@ window.onload = async () => {
   gemPuzzle.renderPuzzle();
   gemPuzzle.addListener();
 
-  const nums = new State();
-  nums.addListenerState();
+  const state = new State();
+  state.addListenerState();
 };

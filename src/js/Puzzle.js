@@ -1,14 +1,9 @@
 // import { ResolvePlugin } from 'webpack';
 
 export default class Puzzle {
-  // static answer
-  // static step = 0
-  // static minSpan
-  // static secSpan
-  // static mainContainerWrapperPuzzle
-  // static stepSpan = '0'//document.querySelector('#wrapper_info__steps')
   constructor(size) {
     this.size = size;
+    this.timer = null;
     this.gameState = 'stop'; // 'pause', 'play'
     this.directions = new Map(
       [
@@ -86,7 +81,13 @@ export default class Puzzle {
       const attribute = [];
       const puzzleContainer = Puzzle.createElem('div', attribute, 'wrapper_puzzle__container');
       puzzleContainer.classList.add(`col_${sizePuzzle}`);
-      puzzleContainer.innerHTML = `<div class="container" id="container_${i}"><p class="wrapper_puzzle__container-text">${i}</p></div>`;
+      const container = Puzzle.createElem('div', [['id', `container_${i}`]], 'container');
+      const canvas = Puzzle.createElem('canvas', [['width', `${320 / sizePuzzle}`], ['height', `${320 / sizePuzzle}`]], 'wrapper_puzzle__canvas');
+      this.drowCanvasImg(canvas, i, sizePuzzle);
+      const containerText = Puzzle.createElem('p', [], 'wrapper_puzzle__container-text');
+      containerText.innerText = i;
+      container.append(containerText, canvas);
+      puzzleContainer.append(container);
       this.mainContainerWrapperPuzzle.append(puzzleContainer);
       Puzzle.answer += i;
     }
@@ -98,12 +99,42 @@ export default class Puzzle {
     document.querySelector('.puzzleSize p').innerHTML = `Размер поля ${sizePuzzle}x${sizePuzzle}`;
   }
 
+  drowCanvasImg(canvas, i, size) {
+    // const canvas = document.querySelector('.wrapper_puzzle__canvas');
+    const idx = i - 1;
+    const lengthPuzzle = size * size;
+    const cnv = canvas;
+    const context = cnv.getContext('2d');
+    this.image = new Image();
+    this.image.src = 'https://raw.githubusercontent.com/irinainina/image-data/master/box/3.jpg';
+    this.image.onload = () => {
+      const sourceWidth = this.image.width / size;
+      const sourceHeight = this.image.height / size;
+      const sourceX = Puzzle.getX(idx, lengthPuzzle) * sourceWidth;
+      const sourceY = Puzzle.getY(idx, lengthPuzzle) * sourceHeight;
+      const destWidth = canvas.width;
+      const destHeight = canvas.height;
+      const destX = 0;
+      const destY = 0;
+      context.drawImage(
+        this.image,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        destX,
+        destY,
+        destWidth,
+        destHeight,
+      );
+    };
+  }
+
   addListener() {
-    // document.querySelector('.puzzleSize').addEventListener('click',
-    //  this.setPuzzleSize.bind(this));
-    document.querySelector('.setting').addEventListener('click', this.installSettings.bind(this));
-    this.mainContainerWrapperPuzzle.addEventListener('mousedown', this.dragAndDrop.bind(this));
-    this.mainContainerWrapperPuzzle.addEventListener('mouseup', this.mouseUp.bind(this));
+    document.querySelector('.puzzleSize').addEventListener('click', this.setPuzzleSize.bind(this));
+    document.querySelector('.setting').addEventListener('click', (e) => this.installSettings(e));
+    this.mainContainerWrapperPuzzle.addEventListener('mousedown', (e) => this.dragAndDrop(e));
+    // this.mainContainerWrapperPuzzle.addEventListener('mouseup', (e) => this.mouseUp(e));
   }
 
   static getSequenceNumbers() {
@@ -168,7 +199,7 @@ export default class Puzzle {
 
   async dragAndDrop(e) {
     if (e.target.closest('.container') && this.gameState === 'play') {
-      this.mainContainerWrapperPuzzle.removeEventListener('mouseup', this.mouseUp); // not WORKING ! ! ! ! ! ! ! ! ! ! !
+      let dndFlag = false;
       const selectedContainer = e.target.closest('.container');
       const emptyContainer = document.querySelector('#last_container');
       const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
@@ -177,6 +208,7 @@ export default class Puzzle {
       const shiftY = e.pageY - selectedContainerCrdnts.top;
       selectedContainer.style.zIndex = 1000;
       document.onmousemove = (event) => {
+        dndFlag = true;
         Puzzle.checkPostn(
           event,
           selectedContainer,
@@ -185,10 +217,15 @@ export default class Puzzle {
         );
       };
 
-      document.onmouseup = async () => {
-        // await this.moveContainer(selectedContainer, emptyContainer, direction);
+      document.onmouseup = async (event) => {
+        if (dndFlag && this.gameState === 'play') {
+          dndFlag = !dndFlag;
+          await this.moveContainer(selectedContainer, emptyContainer, direction);
+        } else {
+          this.mouseUp(event);
+        }
         document.onmousemove = null;
-        selectedContainer.onmouseup = null;
+        document.onmouseup = null;
       };
       selectedContainer.ondragstart = () => false;
     }
@@ -238,7 +275,7 @@ export default class Puzzle {
   }
 
   async moveContainer(container, emptyContainer, direction) {
-    // this.gameState = 'pause';
+    this.gameState = 'pause';
     // console.log(this.gameState);
     let offset = 0;
     let answer = [];
@@ -297,15 +334,13 @@ export default class Puzzle {
         }
       });
     });
-    // const resultFlag = await promise;
     if (await promise) answer = Puzzle.getSequenceNumbers();
-    // this.gameState = 'play';
-    // console.log(this.gameState);
+    this.gameState = 'play';
     return answer;
   }
 
   static checkPositionActiveContainer(container, emptyContainer, timer) {
-    Puzzle.stepSpan.innerText = Number(Puzzle.stepSpan.innerText) + 1;
+    Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
     const numEmptyContainer = emptyContainer.childNodes[0];
     emptyContainer.removeAttribute('id');
     emptyContainer.removeAttribute('style');
@@ -319,23 +354,60 @@ export default class Puzzle {
     return true;
   }
 
-  static setTime(s, m, h) {
-    //  clearInterval(Puzzle.timer);
+  static getY(index, length) {
+    return Math.trunc(index / Math.sqrt(length));
+  }
+
+  static getX(index, length) {
+    return index % Math.sqrt(length);
+  }
+
+  static getIndex(x, y, length) {
+    return (y * Math.sqrt(length)) + x;
+  }
+
+  static getInversions(arr) {
+    const arrLength = arr.length;
+    let count = 0;
+    for (let i = 0; i < arrLength; i += 1) {
+      for (let j = i + 1; j <= arrLength; j += 1) {
+        if (arr[i] > arr[j] && (arr[i] !== 0 && arr[j] !== 0)) {
+          count += 1;
+        }
+      }
+    }
+    return count;
+  }
+
+  static isSoloble(startState) {
+    const startStateArr = [];
+    startState.forEach((item) => {
+      startStateArr.push(+item.innerText);
+    });
+    let result = false;
+    const numOfInversions = Puzzle.getInversions(startStateArr);
+    const numOfLines = Math.sqrt(startStateArr.length);
+    const zeroIndex = startStateArr.indexOf(0);
+    const zeroY = Puzzle.getY(zeroIndex, startStateArr.length);
+    if (numOfLines % 2 === 0) {
+      if (zeroY % 2 === 0 && numOfInversions % 2 !== 0) {
+        result = true;
+      } else if (zeroY % 2 !== 0 && numOfInversions % 2 === 0) {
+        result = true;
+      }
+    } else if (numOfLines % 2 !== 0) {
+      result = (numOfInversions % 2 === 0);
+    }
+    return !result;
+  }
+
+  static setTime() {
     Puzzle.stepSpan.innerText = '0';
-    const arrauDiv = [];
-    document.querySelectorAll('.wrapper_puzzle__container ').forEach((elem) => {
-      arrauDiv.push(elem);
-      elem.remove();
-    });
-    arrauDiv.sort(() => Math.random() - 0.5);
-    arrauDiv.forEach((elem) => {
-      this.mainContainerWrapperPuzzle.append(elem);
-    });
     Puzzle.minSpan.innerText = '00';
     Puzzle.secSpan.innerText = '00';
     let min = 0;
     let sec = 0;
-    setInterval(() => {
+    return setInterval(() => {
       sec += 1;
       if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
       else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
@@ -346,21 +418,27 @@ export default class Puzzle {
         if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
         else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
       }
-    }, 1000, s, m, h);
+    }, 1000);
+  }
+
+  shufflePuzzle(numbers = []) {
+    if (numbers.length === 0) {
+      document.querySelectorAll('.wrapper_puzzle__container ').forEach((elem) => {
+        numbers.push(elem);
+        elem.remove();
+      });
+    }
+    numbers.sort(() => Math.random() - 0.5);
+    if (Puzzle.isSoloble(numbers)) this.shufflePuzzle(numbers);
+    numbers.forEach((elem) => this.mainContainerWrapperPuzzle.append(elem));
   }
 
   installSettings(e) {
     if (e.target.getAttribute('name') === 'startGame') {
       this.gameState = 'play';
-      const arrauDiv = [];
-      document.querySelectorAll('.wrapper_puzzle__container ').forEach((elem) => {
-        arrauDiv.push(elem);
-        elem.remove();
-      });
-      arrauDiv.sort(() => Math.random() - 0.5);
-      arrauDiv.forEach((elem) => {
-        this.mainContainerWrapperPuzzle.append(elem);
-      });
+      this.shufflePuzzle();
+      clearTimeout(this.timer);
+      this.timer = Puzzle.setTime();
     }
   }
 

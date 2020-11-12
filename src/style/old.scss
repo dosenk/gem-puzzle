@@ -48,10 +48,11 @@ body {
 
 .wrapper_puzzle__container {
   position: relative;
+  background-color: black;
 }
 
 .container {
-  position: absolute;
+  position: relative;
   outline: 2px solid black;
   outline-offset: -1px;
   cursor: pointer;
@@ -61,12 +62,14 @@ body {
   background-color: cornsilk;
 }
 
-.container:hover {
-  background-color: cornflowerblue;
-}
+// .container:hover {
+//   outline: 2px solid black;
+//   outline-offset: -1px;
+// }
 
 .wrapper_puzzle__container-text {
   margin: auto;
+  z-index: 1000;
 }
 .wrapper_puzzle__container-last {
   display: none;
@@ -180,4 +183,10 @@ body {
 .modal_window__info > a:hover {
   background-color: blueviolet;
   color: aliceblue;
+}
+
+.wrapper_puzzle__canvas {
+  position: absolute;
+  width: 100%;
+  height: 100%;
 }
