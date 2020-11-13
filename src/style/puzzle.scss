@@ -1,0 +1,216 @@
+body {
+  font-family: "Franklin Gothic Medium", "Arial Narrow", Arial, sans-serif;
+}
+
+header {
+  width: 100%;
+  height: 100px;
+  background-color: blueviolet;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-size: 14px;
+  //   font-weight: bold;
+  .setting {
+    width: 90%;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    margin-bottom: 10px;
+    &Button {
+      width: 150px;
+      height: 40px;
+      border: none;
+      background-color: #fff;
+      border-radius: 9px;
+      cursor: pointer;
+      &:hover {
+        background-color: indigo;
+        color: #fff;
+      }
+    }
+  }
+}
+
+main {
+  width: 100%;
+  height: 720px;
+  background-image: url("./../assets/images/unsplash.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  .wrapper_info {
+    height: 40px;
+    position: relative;
+    border-bottom: 2px solid blueviolet;
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: center;
+    justify-content: center;
+    &__container {
+      width: 300px;
+      display: flex;
+      justify-content: stretch;
+      color: #fff;
+      text-shadow: 1px 1px 1px black, 1em 1em 2em gray;
+      font-size: 25px;
+      font-weight: 900;
+    }
+    &__chImage {
+      position: absolute;
+      right: 100px;
+      width: 150px;
+      height: 25px;
+      cursor: pointer;
+    }
+  }
+  .wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    &_puzzle {
+      width: 600px;
+      height: 600px;
+      text-shadow: 1px 1px 1px white, 1em 1em 2em white;
+      background-color: #fff;
+      outline: 1px solid blueviolet;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      @media screen and (max-width: 1280px) {
+        width: 500px;
+        height: 500px;
+      }
+      @media screen and (max-width: 767px) {
+        width: 300px;
+        height: 300px;
+      }
+      //   align-content: space-around;
+      .col_3 {
+        width: 199px;
+        height: 199px;
+        @media screen and (max-width: 1280px) {
+          width: 166px;
+          height: 166px;
+        }
+        @media screen and (max-width: 767px) {
+          width: 99px;
+          height: 99px;
+        }
+      }
+      .col_4 {
+        width: 149px;
+        height: 149px;
+        @media screen and (max-width: 1280px) {
+          width: 124px;
+          height: 124px;
+        }
+        @media screen and (max-width: 767px) {
+          width: 74px;
+          height: 74px;
+        }
+      }
+      .col_5 {
+        width: 119px;
+        height: 119px;
+        @media screen and (max-width: 1280px) {
+          width: 99px;
+          height: 99px;
+        }
+        @media screen and (max-width: 767px) {
+          width: 59px;
+          height: 59px;
+        }
+      }
+      .col_6 {
+        width: 99px;
+        height: 99px;
+        @media screen and (max-width: 1280px) {
+          width: 82px;
+          height: 82px;
+        }
+        @media screen and (max-width: 767px) {
+          width: 49px;
+          height: 49px;
+        }
+      }
+      .col_7 {
+        width: 84px;
+        height: 84px;
+        @media screen and (max-width: 1280px) {
+          width: 70px;
+          height: 70px;
+        }
+        @media screen and (max-width: 767px) {
+          width: 41px;
+          height: 41px;
+        }
+      }
+      .col_8 {
+        width: 74px;
+        height: 74px;
+        @media screen and (max-width: 1280px) {
+          width: 61px;
+          height: 61px;
+        }
+        @media screen and (max-width: 767px) {
+          width: 36px;
+          height: 36px;
+        }
+      }
+      #last_container {
+        z-index: -1;
+      }
+      &__container {
+        &:hover {
+          background-color: #fff;
+        }
+        .container {
+          position: relative;
+          width: 100%;
+          height: 100%;
+          cursor: pointer;
+          .wrapper_puzzle__container-text {
+            position: absolute;
+            z-index: 2;
+          }
+          .wrapper_puzzle__canvas {
+            position: absolute;
+            transition: all 1s ease-in-out; // not work in CANVAS
+          }
+        }
+      }
+    }
+  }
+  .puzzleSize {
+    color: #fff;
+    text-shadow: 1px 1px 1px black, 1em 1em 2em gray;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    row-gap: 5px;
+    &Other {
+      display: flex;
+      column-gap: 10px;
+      a {
+        color: #fff;
+        &:hover {
+          color: darkgray;
+        }
+      }
+    }
+  }
+}
+// .puzzle_footer {
+//   position: absolute;
+//   bottom: 0;
+//   width: 100%;
+//   height: 150px;
+//   background-color: blueviolet;
+// }
+.modal {
+  display: none;
+}

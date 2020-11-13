@@ -1,8 +1,7 @@
-/* eslint-disable import/no-named-as-default */
-// eslint-disable-next-line import/no-named-as-default-member
 import Puzzle from './Puzzle';
+import Preloader from './Preloader';
+import SOLUTIONS from './const/solutions';
 
-// import Puzzle from './puzzle'
 export default class State extends Puzzle {
   constructor() {
     super();
@@ -12,24 +11,31 @@ export default class State extends Puzzle {
   }
 
   addListenerState() {
-    document.querySelector('.setting').addEventListener('click', this.doCorrectSolution.bind(this));
+    document.querySelector('.setting').addEventListener('click', (e) => this.doCorrectSolution(e));
+    document.querySelector('.setting').addEventListener('click', (e) => this.installShuffle(e));
   }
 
   async doCorrectSolution(e) {
     if (e.target.getAttribute('name') === 'getSolution') {
+      let result = [];
       this.gameState = 'pause';
       const numbers = Puzzle.getSequenceNumbers();
-      const trueSolution = [...Array(numbers.length).keys()];
-      trueSolution.shift();
-      trueSolution.push(0);
+      const trueSolution = SOLUTIONS[Math.sqrt(numbers.length) - 3];
       // pre-loader ##############
-      const result = await this.findPath(numbers, trueSolution);
-      const solutionDirections = await result;
-      if (solutionDirections.findPath) {
-        // pre-loader off ###########
-        await this.moveContainerSolution(solutionDirections.path, numbers);
+      if (numbers.length > 16) {
+        console.log(this.moveArr);
+        result = this.moveArr; // vlad func
       } else {
-        console.log(solutionDirections);
+        result = await this.findPath(numbers, trueSolution);
+      }
+      // const solutionDirections = await result;
+      if (await result.foundPath) {
+        // pre-loader off ###########
+        console.log(result);
+
+        await this.moveContainerSolution(result.path, numbers);
+      } else {
+        console.log(result);
       }
     }
   }
@@ -73,7 +79,7 @@ export default class State extends Puzzle {
     return index;
   }
 
-  move(direction, numbers) { // return pair [bool, [[str], [array]]]
+  move(direction, numbers) { // return pair = [bool, [[str], [array]]]
     const zeroIndex = numbers.indexOf(0);
     const stateLength = numbers.length;
     const zeroX = Puzzle.getX(zeroIndex, stateLength);
@@ -109,8 +115,8 @@ export default class State extends Puzzle {
   static getTwoDimensionalArray(arr) {
     const arrLenght = arr.length;
     const numOfElem = Math.sqrt(arrLenght);
-    const rowArr = []; // массив строк
-    const colArr = []; // массив столбцов
+    const rowArr = [];
+    const colArr = [];
     for (let i = 0; i <= numOfElem - 1; i += 1) {
       const numOfArr = arr.slice(i * numOfElem, (i + 1) * numOfElem);
       numOfArr.forEach((elem, idx) => {
@@ -170,15 +176,19 @@ export default class State extends Puzzle {
       (item) => State.getAllHeuristics(item.state) === minHeuristics,
     );
   }
-  // #############################################################################
 
   async findPath(startState, finalState) { // startState[[numbers], [path]]
-    // if (Puzzle.isSoloble(startState)) return [false, 'Решения не существует'];
     const finalStateHash = State.getHash(finalState);
     let findPathFlag = false;
     const queue = [];
     const result = {};
     queue.push({ state: startState, path: [] });
+    if (finalStateHash === State.getHash(startState)) {
+      return {
+        foundPath: false,
+        info: 'no solution required',
+      };
+    }
 
     while (queue.length !== 0) {
       // firstState = { state: [numbers], path: ['D_UP', 'D_DOWN' ...]}
@@ -197,8 +207,9 @@ export default class State extends Puzzle {
           earlyQueueHeuristics.push(State.getAllHeuristics(resultMove.state));
         }
         if (finalStateHash === State.getHash(resultMove.state)) {
+          this.visited.clear();
           findPathFlag = true;
-          result.findPath = true;
+          result.foundPath = true;
           result.path = earlyQueue.pop().path;
         }
       }
@@ -209,5 +220,62 @@ export default class State extends Puzzle {
       ));
     }
     return result;
+  }
+
+  mix(array) {
+    let countMoves = State.randomInteger(30, 100);
+    let arr = array;
+    while (countMoves !== 0) {
+      arr = this.Steps(arr);
+      countMoves -= 1;
+    }
+    return arr;
+  }
+
+  installShuffle(e) {
+    if (e.target.getAttribute('name') === 'startGame') {
+      const mainContainer = document.querySelector('.wrapper_puzzle');
+      console.log(this.mix());
+      // const numbers = this.steps();
+      // console.log(numbers);
+      // numbers.forEach((elem) => mainContainer.append(elem));
+    }
+  }
+
+  steps(array) {
+    const directions = ['D_LEFT', 'D_RIGHT', 'D_UP', 'D_DOWN'];
+    const newArray = [];
+    const arrayMoves = [];
+    let random = 0;
+    directions.forEach((element) => {
+      if (this.move(element, array).canMove) {
+        newArray.push(this.move(element, array).state);
+        arrayMoves.push(element);
+      }
+    });
+    if (this.moveArr.length === 0) {
+      random = State.randomInteger(1, newArray.length);
+      this.moveArr.push(arrayMoves[random - 1]);
+    } else {
+      random = State.randomInteger(1, newArray.length);
+      const randomMove = arrayMoves[random - 1];
+      if ((this.moveArr[this.moveArr.length - 1] === 'D_LEFT' && randomMove === 'D_RIGHT')
+                || (this.moveArr[this.moveArr.length - 1] === 'D_RIGHT' && randomMove === 'D_LEFT')
+                || (this.moveArr[this.moveArr.length - 1] === 'D_UP' && randomMove === 'D_DOWN')
+                || (this.moveArr[this.moveArr.length - 1] === 'D_DOWN' && randomMove === 'D_UP')) {
+        newArray.splice(random - 1, 1);
+        arrayMoves.splice(random - 1, 1);
+        random = State.randomInteger(1, newArray.length);
+        this.moveArr.push(arrayMoves[random - 1]);
+      } else {
+        this.moveArr.push(arrayMoves[random - 1]);
+      }
+    }
+    return newArray[random - 1];
+  }
+
+  static randomInteger(min, max) {
+    const rand = min - 0.5 + Math.random() * (max - min + 1);
+    return Math.round(rand);
   }
 }

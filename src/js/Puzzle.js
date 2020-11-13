@@ -14,6 +14,8 @@ export default class Puzzle {
       ],
     );
     this.movePuzzle = false;
+    this.imageCanvas = 1;
+    this.moveArr = [];
   }
 
   static createElem(element, atributes = [], ...classes) {
@@ -25,78 +27,112 @@ export default class Puzzle {
     return elem;
   }
 
-  createPazzle() {
-    const mainContainer = Puzzle.createElem('div', [], 'main_container');
+  renderDomElements() {
+    const mainContainer = Puzzle.createElem('main', [], 'main_container');
+    const header = Puzzle.createElem('header', [], 'puzzle_header');
     const mainContainerSettings = Puzzle.createElem('div', [], 'setting');
     mainContainerSettings.innerHTML = '<input class=\'settingButton\' name=\'startGame\' type=\'button\' value=\'Размешать и начать\'>';
     mainContainerSettings.innerHTML += '<input class=\'settingButton\' name=\'stopGame\' type=\'button\' value=\'Стоп\'>';
     mainContainerSettings.innerHTML += '<input class=\'settingButton\' name=\'saveGame\' type=\'button\' value=\'Сохранить\'>';
     mainContainerSettings.innerHTML += '<input class=\'settingButton\' name=\'getResults\' type=\'button\' value=\'Результаты\'>';
     mainContainerSettings.innerHTML += '<input class=\'settingButton\' name=\'getSolution\' type=\'button\' value=\'Решение\'>';
-
     const mainContainerWrapper = Puzzle.createElem('div', [], 'wrapper');
     const mainContainerWrapperInfo = Puzzle.createElem('div', [], 'wrapper_info');
-    mainContainerWrapperInfo.innerHTML = '<p>Ходов: <span id="wrapper_info__steps">0</span> Время: <span id="wrapper_info__time"><span id="time_min">00</span>:<span id ="time_sec">00</span></span></p>';
+    const mainContainerWrapperInfoChImage = Puzzle.createElem('button', [], 'wrapper_info__chImage');
+    mainContainerWrapperInfoChImage.innerText = 'change image';
+    const mainContainerWrapperInfoContainer = Puzzle.createElem('div', [], 'wrapper_info__container');
+    const mainContainerWrapperInfoContainerSteps = Puzzle.createElem('p', [], 'wrapper_info__container');
+    mainContainerWrapperInfoContainerSteps.innerText = 'Steps: ';
+    Puzzle.stepSpan = Puzzle.createElem('span', [['id', 'wrapper_info__steps']], 'info_steps');
+    Puzzle.stepSpan.innerText = '0';
+    mainContainerWrapperInfoContainerSteps.append(Puzzle.stepSpan);
+    const mainContainerWrapperInfoContainerTime = Puzzle.createElem('p', [], 'wrapper_info__container');
+    mainContainerWrapperInfoContainerTime.innerText = 'Time: ';
+    this.minSpan = Puzzle.createElem('span', [['id', 'time_min']], 'info_min');
+    this.minSpan.innerText = '00';
+    this.timeDelimiterSpan = Puzzle.createElem('span', [['id', 'time_min']], 'info_time-delimetr');
+    this.timeDelimiterSpan.innerText = ':';
+    this.secSpan = Puzzle.createElem('span', [['id', 'time_sec']], 'info_sec');
+    this.secSpan.innerText = '00';
+    mainContainerWrapperInfoContainerTime.append(
+      this.minSpan,
+      this.timeDelimiterSpan,
+      this.secSpan,
+    );
+    mainContainerWrapperInfoContainer.append(
+      mainContainerWrapperInfoContainerSteps,
+      mainContainerWrapperInfoContainerTime,
+    );
+    mainContainerWrapperInfo.append(
+      mainContainerWrapperInfoContainer,
+      mainContainerWrapperInfoChImage,
+    );
     this.mainContainerWrapperPuzzle = Puzzle.createElem('div', [], 'wrapper_puzzle');
-    mainContainerWrapper.append(mainContainerWrapperInfo, this.mainContainerWrapperPuzzle);
-
+    mainContainerWrapper.append(this.mainContainerWrapperPuzzle);
     const mainContainerPuzzleSize = Puzzle.createElem('div', [], 'puzzleSize');
-    mainContainerPuzzleSize.innerHTML = `<p>Размер поля ${this.size}x${this.size}</p>`;
-    mainContainerPuzzleSize.innerHTML += 'Другие размеры ';
-    mainContainerPuzzleSize.innerHTML += '<a class="size_puzzle" href="#">3x3</a> ';
-    mainContainerPuzzleSize.innerHTML += '<a class="size_puzzle" href="#">4x4</a> ';
-    mainContainerPuzzleSize.innerHTML += '<a class="size_puzzle" href="#">5x5</a> ';
-    mainContainerPuzzleSize.innerHTML += '<a class="size_puzzle" href="#">6x6</a> ';
-    mainContainerPuzzleSize.innerHTML += '<a class="size_puzzle" href="#">7x7</a> ';
-    mainContainerPuzzleSize.innerHTML += '<a class="size_puzzle" href="#">8x8</a>';
-
-    mainContainer.append(mainContainerSettings, mainContainerWrapper, mainContainerPuzzleSize);
-
+    mainContainerPuzzleSize.innerHTML = `<div class="puzzleSizeNow"><p>Размер поля ${this.size}x${this.size}</p></div>`;
+    const mainContainerPuzzleSizeOther = Puzzle.createElem('div', [], 'puzzleSizeOther');
+    for (let i = 2; i <= 8; i += 1) {
+      const text = (i === 2) ? '<p>Другие размеры</p> ' : `<a class="size_puzzle" href="#">${i}x${i}</a> `;
+      mainContainerPuzzleSizeOther.innerHTML += text;
+    }
+    mainContainerPuzzleSize.append(mainContainerPuzzleSizeOther);
+    mainContainer.append(mainContainerWrapperInfo, mainContainerWrapper, mainContainerPuzzleSize);
     const modal = Puzzle.createElem('div', [], 'modal');
     Puzzle.modalWindow = Puzzle.createElem('div', [], 'modal_window'); // '<div class="modal_window"></div>'
     Puzzle.modalWindow.innerHTML = '<div class="modal_window__info"></div>';
     const buttonOk = Puzzle.createElem('div', [], 'modal_window__ok');
     buttonOk.innerHTML = '<p>OK</p>';
     Puzzle.modalWindow.append(buttonOk);
+    const footer = Puzzle.createElem('footer', [], 'puzzle_footer');
     modal.append(Puzzle.modalWindow);
-
-    document.body.append(mainContainer, modal);
-  }
-
-  getSize() {
-    return this.size;
+    header.append(mainContainerSettings);
+    document.body.append(header, mainContainer, footer, modal);
   }
 
   renderPuzzle(num = null) {
-    this.mainContainerWrapperPuzzle.innerHTML = '';
-    Puzzle.minSpan = document.querySelector('#time_min');
-    Puzzle.secSpan = document.querySelector('#time_sec');
-    Puzzle.answer = '';
-    Puzzle.stepSpan = document.querySelector('#wrapper_info__steps');
-    Puzzle.stepSpan.innerText = '0';
+    this.image = new Image();
+    this.image.src = `https://raw.githubusercontent.com/irinainina/image-data/master/box/${this.imageCanvas}.jpg`;
+    this.image.onload = () => {
+      this.mainContainerWrapperPuzzle.innerHTML = '';
+      this.innerText = '0';
+      this.size = num === null ? this.size : num;
+      const sizeCanvas = this.getCanvasSizeFromResolution(this.size);
+      const size = this.size * this.size;
+      for (let i = 1; i <= size - 1; i += 1) {
+        const attribute = [];
+        const puzzleContainer = Puzzle.createElem('div', attribute, 'wrapper_puzzle__container');
+        puzzleContainer.classList.add(`col_${this.size}`);
+        const container = Puzzle.createElem('div', [['id', `container_${i}`]], 'container');
+        const canvas = Puzzle.createElem('canvas', [['width', `${sizeCanvas}`], ['height', `${sizeCanvas}`]], 'wrapper_puzzle__canvas');
+        this.drowCanvasImg(canvas, i, this.size);
+        const containerText = Puzzle.createElem('p', [], 'wrapper_puzzle__container-text');
+        containerText.innerText = i;
+        container.append(containerText, canvas);
+        puzzleContainer.append(container);
+        this.mainContainerWrapperPuzzle.append(puzzleContainer);
+        Puzzle.answer += i;
+      }
+      Puzzle.answer += size;
+      const lastPuzzleContainer = Puzzle.createElem('div', [['id', 'last_container']], 'wrapper_puzzle__container');
+      lastPuzzleContainer.innerHTML = `<div id="container_${size}"><p class="wrapper_puzzle__container-last">0</p></div>`;
+      lastPuzzleContainer.classList.add(`col_${this.size}`);
+      this.mainContainerWrapperPuzzle.append(lastPuzzleContainer);
+      document.querySelector('.puzzleSize p').innerHTML = `Размер поля ${this.size}x${this.size}`;
+    };
+  }
 
-    const sizePuzzle = num === null ? this.size : num;
-    const size = sizePuzzle * sizePuzzle; // Math.pow(sizePuzzle, 2);
-    for (let i = 1; i <= size - 1; i += 1) {
-      const attribute = [];
-      const puzzleContainer = Puzzle.createElem('div', attribute, 'wrapper_puzzle__container');
-      puzzleContainer.classList.add(`col_${sizePuzzle}`);
-      const container = Puzzle.createElem('div', [['id', `container_${i}`]], 'container');
-      const canvas = Puzzle.createElem('canvas', [['width', `${320 / sizePuzzle}`], ['height', `${320 / sizePuzzle}`]], 'wrapper_puzzle__canvas');
-      this.drowCanvasImg(canvas, i, sizePuzzle);
-      const containerText = Puzzle.createElem('p', [], 'wrapper_puzzle__container-text');
-      containerText.innerText = i;
-      container.append(containerText, canvas);
-      puzzleContainer.append(container);
-      this.mainContainerWrapperPuzzle.append(puzzleContainer);
-      Puzzle.answer += i;
+  getCanvasSizeFromResolution() {
+    let sizeCanvas;
+    const resolution = window.screen.width;
+    if (resolution > 1280) {
+      sizeCanvas = Math.trunc(600 / this.size);
+    } else if (resolution <= 1280 && resolution >= 768) {
+      sizeCanvas = Math.trunc(500 / this.size);
+    } else if (resolution < 768) {
+      sizeCanvas = Math.trunc(300 / this.size);
     }
-    Puzzle.answer += size;
-    const lastPuzzleContainer = Puzzle.createElem('div', [['id', 'last_container']], 'wrapper_puzzle__container');
-    lastPuzzleContainer.innerHTML = `<div id="container_${size}"><p class="wrapper_puzzle__container-last">0</p></div>`;
-    lastPuzzleContainer.classList.add(`col_${sizePuzzle}`);
-    this.mainContainerWrapperPuzzle.append(lastPuzzleContainer);
-    document.querySelector('.puzzleSize p').innerHTML = `Размер поля ${sizePuzzle}x${sizePuzzle}`;
+    return sizeCanvas - 1;
   }
 
   drowCanvasImg(canvas, i, size) {
@@ -105,34 +141,37 @@ export default class Puzzle {
     const lengthPuzzle = size * size;
     const cnv = canvas;
     const context = cnv.getContext('2d');
-    this.image = new Image();
-    this.image.src = 'https://raw.githubusercontent.com/irinainina/image-data/master/box/3.jpg';
-    this.image.onload = () => {
-      const sourceWidth = this.image.width / size;
-      const sourceHeight = this.image.height / size;
-      const sourceX = Puzzle.getX(idx, lengthPuzzle) * sourceWidth;
-      const sourceY = Puzzle.getY(idx, lengthPuzzle) * sourceHeight;
-      const destWidth = canvas.width;
-      const destHeight = canvas.height;
-      const destX = 0;
-      const destY = 0;
-      context.drawImage(
-        this.image,
-        sourceX,
-        sourceY,
-        sourceWidth,
-        sourceHeight,
-        destX,
-        destY,
-        destWidth,
-        destHeight,
-      );
-    };
+
+    const sourceWidth = this.image.width / size;
+    const sourceHeight = this.image.height / size;
+    const sourceX = Puzzle.getX(idx, lengthPuzzle) * sourceWidth;
+    const sourceY = Puzzle.getY(idx, lengthPuzzle) * sourceHeight;
+    const destWidth = canvas.width;
+    const destHeight = canvas.height;
+    const destX = 0;
+    const destY = 0;
+    context.drawImage(
+      this.image,
+      sourceX,
+      sourceY,
+      sourceWidth,
+      sourceHeight,
+      destX,
+      destY,
+      destWidth,
+      destHeight,
+    );
+  }
+
+  changeCanvasImg() {
+    this.imageCanvas = Math.trunc(1 + Math.random() * (150));
+    this.renderPuzzle(this.size, this.imageCanvas);
   }
 
   addListener() {
-    document.querySelector('.puzzleSize').addEventListener('click', this.setPuzzleSize.bind(this));
+    document.querySelector('.puzzleSize').addEventListener('click', (e) => this.setPuzzleSize(e));
     document.querySelector('.setting').addEventListener('click', (e) => this.installSettings(e));
+    document.querySelector('.wrapper_info__chImage').addEventListener('click', () => this.changeCanvasImg());
     this.mainContainerWrapperPuzzle.addEventListener('mousedown', (e) => this.dragAndDrop(e));
     // this.mainContainerWrapperPuzzle.addEventListener('mouseup', (e) => this.mouseUp(e));
   }
@@ -218,13 +257,14 @@ export default class Puzzle {
       };
 
       document.onmouseup = async (event) => {
-        if (dndFlag && this.gameState === 'play') {
+        document.onmousemove = null;
+        if (dndFlag && this.gameState === 'play' && direction.length > 0) {
           dndFlag = !dndFlag;
           await this.moveContainer(selectedContainer, emptyContainer, direction);
         } else {
-          this.mouseUp(event);
+          await this.mouseUp(event);
         }
-        document.onmousemove = null;
+        this.gameState = 'play';
         document.onmouseup = null;
       };
       selectedContainer.ondragstart = () => false;
@@ -232,20 +272,22 @@ export default class Puzzle {
   }
 
   setPuzzleSize(e) {
-    clearInterval(Puzzle.timer);
-    Puzzle.minSpan.innerText = '00';
-    Puzzle.secSpan.innerText = '00';
+    clearInterval(this.timer);
+    this.minSpan.innerText = '00';
+    this.secSpan.innerText = '00';
     if (e.target.classList.contains('size_puzzle')) {
       this.renderPuzzle(e.target.innerText[0]);
     }
   }
 
-  mouseUp(e) {
+  async mouseUp(e) {
     if (e.target.closest('.container') && this.gameState === 'play') {
       const selectedContainer = e.target.closest('.container');
       const emptyContainer = document.querySelector('#last_container');
       const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
-      if (direction.length > 0) this.moveContainer(selectedContainer, emptyContainer, direction);
+      if (direction.length > 0) {
+        await this.moveContainer(selectedContainer, emptyContainer, direction);
+      }
     }
   }
 
@@ -256,18 +298,18 @@ export default class Puzzle {
     const resTop = Math.floor(selectedContainerCrdnts.top - emptyContainerCrdnts.top);
     const resLeft = Math.floor(selectedContainerCrdnts.left - emptyContainerCrdnts.left);
     if (selectedContainerCrdnts.left === emptyContainerCrdnts.left) {
-      if (resTop <= 0 && resTop >= -Math.floor(selectedContainerCrdnts.width)) {
+      if (resTop <= 0 && resTop >= -Math.floor(selectedContainerCrdnts.width + 5)) {
         direction = 'D_UP';
       }
-      if (resTop >= 0 && resTop <= Math.floor(selectedContainerCrdnts.width)) {
+      if (resTop >= 0 && resTop <= Math.floor(selectedContainerCrdnts.width + 5)) {
         direction = 'D_DOWN';
       }
     }
     if (selectedContainerCrdnts.top === emptyContainerCrdnts.top) {
-      if (resLeft <= 0 && resLeft >= -Math.floor(selectedContainerCrdnts.width)) {
+      if (resLeft <= 0 && resLeft >= -Math.floor(selectedContainerCrdnts.width + 5)) {
         direction = 'D_LEFT';
       }
-      if (resLeft >= 0 && resLeft <= Math.floor(selectedContainerCrdnts.width)) {
+      if (resLeft >= 0 && resLeft <= Math.floor(selectedContainerCrdnts.width + 5)) {
         direction = 'D_RIGHT';
       }
     }
@@ -276,34 +318,27 @@ export default class Puzzle {
 
   async moveContainer(container, emptyContainer, direction) {
     this.gameState = 'pause';
-    // console.log(this.gameState);
     let offset = 0;
     let answer = [];
     const cntnr = container;
-    // let verticalOffset, horisontalOffset = false
     if (direction === 'D_UP' || direction === 'D_DOWN') {
       offset = Math.abs(+container.style.top.slice(0, -2));
-      // verticalOffset = true;
     }
     if (direction === 'D_LEFT' || direction === 'D_RIGHT') {
       offset = Math.abs(+cntnr.style.left.slice(0, -2));
-      // horisontalOffset = true
     }
-    // console.log(offset, Puzzle.getCoords(container).width / 2);
-    if (offset < Puzzle.getCoords(cntnr).width / 2) {
-      // if (verticalOffset) direction = direction === 'D_UP' ? 'D_DOWN' : 'D_UP'
-      // if (horisontalOffset) direction = direction === 'D_LEFT' ? 'D_RIGHT' : 'D_LEFT'
-    }
-    const start = Date.now();
+    const startDate = Date.now();
     const promise = new Promise((resolve) => {
       let result;
+
       const timer = setInterval(() => {
-        const timePassed = Date.now() - start;
+        const timePassed = Date.now() - startDate;
         if (timePassed >= 500) {
+          console.log(timer);
           clearInterval(timer);
           return;
         }
-        cntnr.style = `z-index: 1000; ${this.directions.get(direction)}: ${offset + (timePassed / 4)}px`;
+        cntnr.style = `z-index: 1000; ${this.directions.get(direction)}: ${offset + (timePassed)}px`;
 
         if (direction === 'D_UP') {
           if (emptyContainer.getBoundingClientRect().top <= container.getBoundingClientRect().top) {
@@ -334,12 +369,18 @@ export default class Puzzle {
         }
       });
     });
+
+    // promise.then((result) => {
+    //   // console.log(result);
+    //   if (result) answer = Puzzle.getSequenceNumbers();
+    //   //
+    // });
     if (await promise) answer = Puzzle.getSequenceNumbers();
-    this.gameState = 'play';
     return answer;
   }
 
   static checkPositionActiveContainer(container, emptyContainer, timer) {
+    // console.log(this);
     Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
     const numEmptyContainer = emptyContainer.childNodes[0];
     emptyContainer.removeAttribute('id');
@@ -349,7 +390,7 @@ export default class Puzzle {
     container.parentNode.append(numEmptyContainer);
     emptyContainer.append(container);
     clearInterval(timer);
-    document.querySelector('.wrapper_puzzle').addEventListener('mouseup', this.mouseUp);
+    // document.querySelector('.wrapper_puzzle').addEventListener('mouseup', this.mouseUp);
 
     return true;
   }
@@ -401,22 +442,22 @@ export default class Puzzle {
     return !result;
   }
 
-  static setTime() {
+  setTime() {
     Puzzle.stepSpan.innerText = '0';
-    Puzzle.minSpan.innerText = '00';
-    Puzzle.secSpan.innerText = '00';
+    this.minSpan.innerText = '00';
+    this.secSpan.innerText = '00';
     let min = 0;
     let sec = 0;
     return setInterval(() => {
       sec += 1;
-      if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
-      else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
+      if (sec < 10) this.secSpan.innerText = `0${sec}`;
+      else if (sec >= 10 && sec < 60) this.secSpan.innerText = sec;
       if (sec === 60) {
-        Puzzle.secSpan.innerText = '00';
+        this.secSpan.innerText = '00';
         min += 1;
         sec = 0;
-        if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
-        else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
+        if (min < 10) this.minSpan.innerText = `0${min}`;
+        else if (min >= 10 && min < 60) this.minSpan.innerText = min;
       }
     }, 1000);
   }
@@ -434,11 +475,18 @@ export default class Puzzle {
   }
 
   installSettings(e) {
+    // ################# start game #######################
     if (e.target.getAttribute('name') === 'startGame') {
       this.gameState = 'play';
-      this.shufflePuzzle();
+      // this.shufflePuzzle();
       clearTimeout(this.timer);
-      this.timer = Puzzle.setTime();
+      this.timer = this.setTime();
+    }
+
+    // ################# get solution #######################
+    if (e.target.getAttribute('name') === 'getSolution') {
+      this.gameState = 'pause';
+      clearTimeout(this.timer);
     }
   }
 
