@@ -1,41 +1,59 @@
 import Puzzle from './Puzzle';
 import Preloader from './Preloader';
-import SOLUTIONS from './const/solutions';
 
 export default class State extends Puzzle {
-  constructor() {
+  constructor(size, SOLUTIONS) {
     super();
     this.edirections = ['D_LEFT', 'D_RIGHT', 'D_UP', 'D_DOWN'];
     this.visited = new Set();
     this.visitedClosed = [];
+    this.size = size;
+    this.solutions = SOLUTIONS;
   }
 
   addListenerState() {
-    document.querySelector('.setting').addEventListener('click', (e) => this.doCorrectSolution(e));
-    document.querySelector('.setting').addEventListener('click', (e) => this.installShuffle(e));
+    document.querySelector('.getSolution').addEventListener('click', (e) => this.doCorrectSolution(e));
+    document.querySelector('.startGame').addEventListener('click', (e) => this.shufflePuzzles(e));
   }
 
-  async doCorrectSolution(e) {
-    if (e.target.getAttribute('name') === 'getSolution') {
+  async doCorrectSolution() {
+    if (Puzzle.gameState === 'stop') {
+      clearTimeout(Puzzle.timer);
       let result = [];
-      this.gameState = 'pause';
-      const numbers = Puzzle.getSequenceNumbers();
-      const trueSolution = SOLUTIONS[Math.sqrt(numbers.length) - 3];
-      // pre-loader ##############
+      const numbers = await Puzzle.getNumbers();
+      const trueSolution = this.solutions[Math.sqrt(numbers.length) - 3];
+      // Preloader.start();
       if (numbers.length > 16) {
-        console.log(this.moveArr);
-        result = this.moveArr; // vlad func
+        result.path = this.moveArr;
+        result.foundPath = true;
       } else {
         result = await this.findPath(numbers, trueSolution);
       }
-      // const solutionDirections = await result;
       if (await result.foundPath) {
-        // pre-loader off ###########
         console.log(result);
-
+        // Preloader.stop();
         await this.moveContainerSolution(result.path, numbers);
       } else {
         console.log(result);
+      }
+      Puzzle.gameState = 'stop';
+    } else if (Puzzle.gameState !== 'pause') {
+      alert('first stop and save the game');
+    }
+  }
+
+  async shufflePuzzles() {
+    if (Puzzle.gameState === 'play') {
+      alert('first stop and save the game');
+    } else if (Puzzle.gameState !== 'pause') {
+      const numbers = await Puzzle.getNumbers();
+      this.moveArr = [];
+      await this.mix(numbers);
+      const path = this.moveArr.slice();
+      const resMove = await this.moveContainerSolution(path, numbers);
+      if (resMove) {
+        Puzzle.timer = Puzzle.setTimer();
+        Puzzle.gameState = 'play';
       }
     }
   }
@@ -52,12 +70,9 @@ export default class State extends Puzzle {
       const index = State.getIndexByDirection(direction, zeroX, zeroY, stateLength);
       const selectedContainer = document.querySelector(`#container_${numbers[index]}`);
       nums = await this.moveContainer(selectedContainer, emptyContainer, direction);
-      this.moveContainerSolution(path, nums);
+      await this.moveContainerSolution(path, nums);
     }
-  }
-
-  static getHash(numbersArr) {
-    return numbersArr.join(',');
+    return true;
   }
 
   static getNumbers(puzzleNumbers) {
@@ -100,7 +115,7 @@ export default class State extends Puzzle {
       .concat(numbers.slice(zeroIndex + 1));
     const result2 = result1.slice(0, index).concat(0)
       .concat(result1.slice(index + 1));
-    if (this.visited.has(State.getHash(result2))) {
+    if (this.visited.has(Puzzle.getHash(result2))) {
       return {
         canMove: false,
         state: numbers,
@@ -178,12 +193,12 @@ export default class State extends Puzzle {
   }
 
   async findPath(startState, finalState) { // startState[[numbers], [path]]
-    const finalStateHash = State.getHash(finalState);
+    const finalStateHash = Puzzle.getHash(finalState);
     let findPathFlag = false;
     const queue = [];
     const result = {};
     queue.push({ state: startState, path: [] });
-    if (finalStateHash === State.getHash(startState)) {
+    if (finalStateHash === Puzzle.getHash(startState)) {
       return {
         foundPath: false,
         info: 'no solution required',
@@ -193,7 +208,7 @@ export default class State extends Puzzle {
     while (queue.length !== 0) {
       // firstState = { state: [numbers], path: ['D_UP', 'D_DOWN' ...]}
       const firstState = queue.shift(); // take first element
-      const firstQueueHash = State.getHash(firstState.state);
+      const firstQueueHash = Puzzle.getHash(firstState.state);
       this.visited.add(firstQueueHash);
       const earlyQueue = [];
       const earlyQueueHeuristics = [];
@@ -206,7 +221,7 @@ export default class State extends Puzzle {
           });
           earlyQueueHeuristics.push(State.getAllHeuristics(resultMove.state));
         }
-        if (finalStateHash === State.getHash(resultMove.state)) {
+        if (finalStateHash === Puzzle.getHash(resultMove.state)) {
           this.visited.clear();
           findPathFlag = true;
           result.foundPath = true;
@@ -226,20 +241,10 @@ export default class State extends Puzzle {
     let countMoves = State.randomInteger(30, 100);
     let arr = array;
     while (countMoves !== 0) {
-      arr = this.Steps(arr);
+      arr = this.steps(arr);
       countMoves -= 1;
     }
     return arr;
-  }
-
-  installShuffle(e) {
-    if (e.target.getAttribute('name') === 'startGame') {
-      const mainContainer = document.querySelector('.wrapper_puzzle');
-      console.log(this.mix());
-      // const numbers = this.steps();
-      // console.log(numbers);
-      // numbers.forEach((elem) => mainContainer.append(elem));
-    }
   }
 
   steps(array) {

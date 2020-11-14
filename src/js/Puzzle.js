@@ -1,10 +1,11 @@
 // import { ResolvePlugin } from 'webpack';
 
 export default class Puzzle {
-  constructor(size) {
+  constructor(size, SOLUTIONS) {
     this.size = size;
+    this.solutions = SOLUTIONS;
     this.timer = null;
-    this.gameState = 'stop'; // 'pause', 'play'
+    Puzzle.gameState = 'stop'; // 'pause', 'play'
     this.directions = new Map(
       [
         ['D_UP', 'top'],
@@ -14,7 +15,8 @@ export default class Puzzle {
       ],
     );
     this.movePuzzle = false;
-    this.imageCanvas = 1;
+    this.imageCanvas = Puzzle.getRandomImageNumber();
+    this.speed = 20;
     this.moveArr = [];
   }
 
@@ -31,11 +33,11 @@ export default class Puzzle {
     const mainContainer = Puzzle.createElem('main', [], 'main_container');
     const header = Puzzle.createElem('header', [], 'puzzle_header');
     const mainContainerSettings = Puzzle.createElem('div', [], 'setting');
-    mainContainerSettings.innerHTML = '<input class=\'settingButton\' name=\'startGame\' type=\'button\' value=\'Размешать и начать\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton\' name=\'stopGame\' type=\'button\' value=\'Стоп\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton\' name=\'saveGame\' type=\'button\' value=\'Сохранить\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton\' name=\'getResults\' type=\'button\' value=\'Результаты\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton\' name=\'getSolution\' type=\'button\' value=\'Решение\'>';
+    mainContainerSettings.innerHTML = '<input class=\'settingButton startGame\' name=\'startGame\' type=\'button\' value=\'Размешать и начать\'>';
+    mainContainerSettings.innerHTML += '<input class=\'settingButton stopGame\' name=\'stopGame\' type=\'button\' value=\'Стоп\'>';
+    mainContainerSettings.innerHTML += '<input class=\'settingButton saveGame\' name=\'saveGame\' type=\'button\' value=\'Сохранить\'>';
+    mainContainerSettings.innerHTML += '<input class=\'settingButton getResults\' name=\'getResults\' type=\'button\' value=\'Результаты\'>';
+    mainContainerSettings.innerHTML += '<input class=\'settingButton getSolution\' name=\'getSolution\' type=\'button\' value=\'Решение\'>';
     const mainContainerWrapper = Puzzle.createElem('div', [], 'wrapper');
     const mainContainerWrapperInfo = Puzzle.createElem('div', [], 'wrapper_info');
     const mainContainerWrapperInfoChImage = Puzzle.createElem('button', [], 'wrapper_info__chImage');
@@ -48,16 +50,16 @@ export default class Puzzle {
     mainContainerWrapperInfoContainerSteps.append(Puzzle.stepSpan);
     const mainContainerWrapperInfoContainerTime = Puzzle.createElem('p', [], 'wrapper_info__container');
     mainContainerWrapperInfoContainerTime.innerText = 'Time: ';
-    this.minSpan = Puzzle.createElem('span', [['id', 'time_min']], 'info_min');
-    this.minSpan.innerText = '00';
+    Puzzle.minSpan = Puzzle.createElem('span', [['id', 'time_min']], 'info_min');
+    Puzzle.minSpan.innerText = '00';
     this.timeDelimiterSpan = Puzzle.createElem('span', [['id', 'time_min']], 'info_time-delimetr');
     this.timeDelimiterSpan.innerText = ':';
-    this.secSpan = Puzzle.createElem('span', [['id', 'time_sec']], 'info_sec');
-    this.secSpan.innerText = '00';
+    Puzzle.secSpan = Puzzle.createElem('span', [['id', 'time_sec']], 'info_sec');
+    Puzzle.secSpan.innerText = '00';
     mainContainerWrapperInfoContainerTime.append(
-      this.minSpan,
+      Puzzle.minSpan,
       this.timeDelimiterSpan,
-      this.secSpan,
+      Puzzle.secSpan,
     );
     mainContainerWrapperInfoContainer.append(
       mainContainerWrapperInfoContainerSteps,
@@ -91,6 +93,10 @@ export default class Puzzle {
   }
 
   renderPuzzle(num = null) {
+    clearInterval(Puzzle.timer);
+    Puzzle.stepSpan.innerText = '0';
+    Puzzle.minSpan.innerText = '00';
+    Puzzle.secSpan.innerText = '00';
     this.image = new Image();
     this.image.src = `https://raw.githubusercontent.com/irinainina/image-data/master/box/${this.imageCanvas}.jpg`;
     this.image.onload = () => {
@@ -164,24 +170,35 @@ export default class Puzzle {
   }
 
   changeCanvasImg() {
-    this.imageCanvas = Math.trunc(1 + Math.random() * (150));
-    this.renderPuzzle(this.size, this.imageCanvas);
+    if (Puzzle.gameState === 'play') {
+      alert('please, first stop and save game/ then change image');
+    } else if (Puzzle.gameState !== 'pause') {
+      this.imageCanvas = Puzzle.getRandomImageNumber();
+      this.renderPuzzle(this.size, this.imageCanvas);
+    }
+  }
+
+  static getRandomImageNumber() {
+    return Math.trunc(1 + Math.random() * (150));
   }
 
   addListener() {
     document.querySelector('.puzzleSize').addEventListener('click', (e) => this.setPuzzleSize(e));
-    document.querySelector('.setting').addEventListener('click', (e) => this.installSettings(e));
+    document.querySelector('.setting').addEventListener('click', (e) => Puzzle.installSettings(e));
     document.querySelector('.wrapper_info__chImage').addEventListener('click', () => this.changeCanvasImg());
     this.mainContainerWrapperPuzzle.addEventListener('mousedown', (e) => this.dragAndDrop(e));
-    // this.mainContainerWrapperPuzzle.addEventListener('mouseup', (e) => this.mouseUp(e));
   }
 
-  static getSequenceNumbers() {
+  static getNumbers() {
     const sequence = [];
     document.querySelectorAll('.wrapper_puzzle__container p').forEach((number) => {
       sequence.push(+number.innerText);
     });
     return sequence;
+  }
+
+  static getHash(numbersArr) {
+    return numbersArr.join(',');
   }
 
   static getCoords(elem) {
@@ -237,7 +254,7 @@ export default class Puzzle {
   }
 
   async dragAndDrop(e) {
-    if (e.target.closest('.container') && this.gameState === 'play') {
+    if (e.target.closest('.container') && Puzzle.gameState === 'play') {
       let dndFlag = false;
       const selectedContainer = e.target.closest('.container');
       const emptyContainer = document.querySelector('#last_container');
@@ -257,38 +274,38 @@ export default class Puzzle {
       };
 
       document.onmouseup = async (event) => {
+        let resultNumbers;
         document.onmousemove = null;
-        if (dndFlag && this.gameState === 'play' && direction.length > 0) {
+        if (dndFlag && Puzzle.gameState === 'play' && direction.length > 0) {
           dndFlag = !dndFlag;
-          await this.moveContainer(selectedContainer, emptyContainer, direction);
+          resultNumbers = await this.moveContainer(selectedContainer, emptyContainer, direction);
         } else {
-          await this.mouseUp(event);
+          resultNumbers = await this.mouseUp(event);
         }
-        this.gameState = 'play';
+        Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
+        Puzzle.gameState = 'play';
         document.onmouseup = null;
+        if (await resultNumbers) {
+          if (Puzzle.getHash(this.solutions[this.size - 3]) === Puzzle.getHash(resultNumbers)) {
+            alert('GOOD JOB, СОСУНОК ! ! !');
+          }
+        }
       };
       selectedContainer.ondragstart = () => false;
     }
   }
 
-  setPuzzleSize(e) {
-    clearInterval(this.timer);
-    this.minSpan.innerText = '00';
-    this.secSpan.innerText = '00';
-    if (e.target.classList.contains('size_puzzle')) {
-      this.renderPuzzle(e.target.innerText[0]);
-    }
-  }
-
   async mouseUp(e) {
-    if (e.target.closest('.container') && this.gameState === 'play') {
+    let resNumbers = [];
+    if (e.target.closest('.container') && Puzzle.gameState === 'play') {
       const selectedContainer = e.target.closest('.container');
       const emptyContainer = document.querySelector('#last_container');
       const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
       if (direction.length > 0) {
-        await this.moveContainer(selectedContainer, emptyContainer, direction);
+        resNumbers = await this.moveContainer(selectedContainer, emptyContainer, direction);
       }
     }
+    return resNumbers.length > 0 ? resNumbers : false;
   }
 
   static getDirection(selectedContainer, emptyContainer) {
@@ -317,7 +334,8 @@ export default class Puzzle {
   }
 
   async moveContainer(container, emptyContainer, direction) {
-    this.gameState = 'pause';
+    const speedNum = 5 / this.speed;
+    Puzzle.gameState = 'pause';
     let offset = 0;
     let answer = [];
     const cntnr = container;
@@ -333,12 +351,11 @@ export default class Puzzle {
 
       const timer = setInterval(() => {
         const timePassed = Date.now() - startDate;
-        if (timePassed >= 500) {
-          console.log(timer);
+        if (timePassed >= 1500) {
           clearInterval(timer);
           return;
         }
-        cntnr.style = `z-index: 1000; ${this.directions.get(direction)}: ${offset + (timePassed)}px`;
+        cntnr.style = `z-index: 1000; ${this.directions.get(direction)}: ${offset + (timePassed / speedNum)}px`;
 
         if (direction === 'D_UP') {
           if (emptyContainer.getBoundingClientRect().top <= container.getBoundingClientRect().top) {
@@ -370,18 +387,11 @@ export default class Puzzle {
       });
     });
 
-    // promise.then((result) => {
-    //   // console.log(result);
-    //   if (result) answer = Puzzle.getSequenceNumbers();
-    //   //
-    // });
-    if (await promise) answer = Puzzle.getSequenceNumbers();
+    if (await promise) answer = Puzzle.getNumbers();
     return answer;
   }
 
   static checkPositionActiveContainer(container, emptyContainer, timer) {
-    // console.log(this);
-    Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
     const numEmptyContainer = emptyContainer.childNodes[0];
     emptyContainer.removeAttribute('id');
     emptyContainer.removeAttribute('style');
@@ -390,8 +400,6 @@ export default class Puzzle {
     container.parentNode.append(numEmptyContainer);
     emptyContainer.append(container);
     clearInterval(timer);
-    // document.querySelector('.wrapper_puzzle').addEventListener('mouseup', this.mouseUp);
-
     return true;
   }
 
@@ -442,27 +450,27 @@ export default class Puzzle {
     return !result;
   }
 
-  setTime() {
+  static setTimer() {
     Puzzle.stepSpan.innerText = '0';
-    this.minSpan.innerText = '00';
-    this.secSpan.innerText = '00';
+    Puzzle.minSpan.innerText = '00';
+    Puzzle.secSpan.innerText = '00';
     let min = 0;
     let sec = 0;
     return setInterval(() => {
       sec += 1;
-      if (sec < 10) this.secSpan.innerText = `0${sec}`;
-      else if (sec >= 10 && sec < 60) this.secSpan.innerText = sec;
+      if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
+      else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
       if (sec === 60) {
-        this.secSpan.innerText = '00';
+        Puzzle.secSpan.innerText = '00';
         min += 1;
         sec = 0;
-        if (min < 10) this.minSpan.innerText = `0${min}`;
-        else if (min >= 10 && min < 60) this.minSpan.innerText = min;
+        if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
+        else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
       }
     }, 1000);
   }
 
-  shufflePuzzle(numbers = []) {
+  shufflePuzzleRandom(numbers = []) {
     if (numbers.length === 0) {
       document.querySelectorAll('.wrapper_puzzle__container ').forEach((elem) => {
         numbers.push(elem);
@@ -474,164 +482,35 @@ export default class Puzzle {
     numbers.forEach((elem) => this.mainContainerWrapperPuzzle.append(elem));
   }
 
-  installSettings(e) {
-    // ################# start game #######################
-    if (e.target.getAttribute('name') === 'startGame') {
-      this.gameState = 'play';
-      // this.shufflePuzzle();
-      clearTimeout(this.timer);
-      this.timer = this.setTime();
-    }
+  static installSettings(e) {
+  // ################# start game #######################
+  // if (e.target.getAttribute('name') === 'startGame') {
+  // Puzzle.gameState = 'play';
+  // this.shufflePuzzle();
+  // if (Puzzle.gameState === 'play') {
+  //   clearTimeout(this.timer);
+  //   this.timer = this.setTimer();
+  // }
+  // }
 
     // ################# get solution #######################
-    if (e.target.getAttribute('name') === 'getSolution') {
-      this.gameState = 'pause';
-      clearTimeout(this.timer);
+    // if (e.target.getAttribute('name') === 'getSolution') {
+    //   Puzzle.gameState = 'pause';
+    //   clearTimeout(this.timer);
+    // }
+    if (e.target.getAttribute('name') === 'stopGame') {
+      Puzzle.gameState = 'stop';
+      clearInterval(Puzzle.timer);
     }
   }
 
-  // installSettings(e) {
-  //   if (e.target.getAttribute('name') === 'settingAnswer') {
-  //     console.log(1);
-  //     // clearInterval(Puzzle.timer);
-  //     // Puzzle.stopFlag = true;
-  //     // console.log(this.mouseUp);
-  //     // this.mainContainerWrapperPuzzle.removeEventListener('mousedown', this.dragAndDrop);
-  //     this.mainContainerWrapperPuzzle.removeEventListener('mouseup', this.mouseUp);
-  //   }
-
-  // if (e.target.getAttribute('name') === 'settingStop') {
-  //   clearInterval(Puzzle.timer);
-  //   Puzzle.stopFlag = true;
-  //   this.mainContainerWrapperPuzzle.removeEventListener('mouseup', this.mouseUp);
-  // }
-  // if (e.target.getAttribute('name') === 'settingSave') {
-  //   clearInterval(Puzzle.timer);
-
-  //   // localStorage.clear()
-  //   if (Puzzle.stopFlag) {
-  //     Puzzle.stopFlag = false;
-  //     clearInterval(Puzzle.timer);
-  //     Puzzle.setResultsGame('saveRes');
-  //     alert('Игра сохранена. Для возобновления игры зайдите в результаты -'
-  //     + 'и выберите пунтк "Продолжить сохраненную игру"');
-  //   } else {
-  //     alert('Сперва остановите игру!');
-  //   }
-  // }
-  // ###################################### settingResult ###################################
-  // if (e.target.getAttribute('name') === 'settingResult') {
-  //   document.querySelector('.modal').style = 'display: block';
-  //   const modal_window = document.querySelector('.modal_window__info');
-  //   modal_window.innerHTML = '';
-  //   const results = JSON.parse(localStorage.getRes);
-  //   // console.log(results)
-
-  //   results.forEach((res, index) => {
-  //     const puzzleSize = Math.sqrt(res.puzzleOrder.length);
-  //     modal_window.innerHTML += `<p>${index + 1}. Поле ${puzzleSize}x${puzzleSize}:
-  // Время - ${res.min}:${res.sec}; Шаги - ${res.step}</p>`;
-  //   });
-  //   modal_window.innerHTML += '<a href="#">Продолжить сохраненную игру</a>';
-
-  //   document.querySelector('.modal_window__info a').addEventListener('click', () => {
-  //     clearInterval(Puzzle.timer);
-  //     // document.querySelector('.modal').style = 'display: none'
-  //     const resN = JSON.parse(localStorage.getItem('saveRes'));
-  //     const container = document.querySelector('.wrapper_puzzle');
-  //     Puzzle.stepSpan.innerText = resN.step;
-  //     Puzzle.minSpan.innerText = resN.min;
-  //     Puzzle.secSpan.innerText = resN.sec;
-  //     console.log(resN.puzzleOrder);
-  //     container.innerHTML = resN.puzzleOrder;
-  //     const settingStart = document.querySelector('.settingButton');
-
-  //     document.querySelector('.settingButton').removeEventListener('click', this.startGame);
-  //     settingStart.value = 'ПРОДОЛЖИТЬ';
-
-  //     settingStart.addEventListener('click', () => {
-
-  //       let min = Number(Puzzle.minSpan.innerText);
-  //       let sec = Number(Puzzle.secSpan.innerText);
-  // Puzzle.timer = setInterval(() => {
-  //   sec += 1;
-  //   if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
-  //   else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
-  //   if (sec === 60) {
-  //     Puzzle.secSpan.innerText = '00';
-  //     min += 1;
-  //     sec = 0;
-  //     if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
-  //     else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
-  //   }
-  // }, 1000);
-  //       settingStart.value = 'Размешать и начать';
-  //       document.querySelector('.settingButton').addEventListener('click', this.startGame);
-  //     });
-  //   }, false);
-  //   document.querySelector('.modal_window__ok').addEventListener('click', () => {
-  //     document.querySelector('.modal').style = 'display: none';
-  //   }, false);
-  // }
-  // }
-
-  // static setResultsGame(resName) { // 'saveRes', 'getRes'
-  //   let res = {};
-  //   res.step = Puzzle.stepSpan.innerText;
-  //   res.min = Puzzle.minSpan.innerText;
-  //   res.sec = Puzzle.secSpan.innerText;
-
-  //   if (resName === 'saveRes') {
-  //     res.puzzleOrder = document.querySelector('.wrapper_puzzle').innerHTML;
-  //     // document.querySelector('.wrapper_puzzle').forEach(element => {
-  //     //     console.log(element)
-  //     //     res.puzzleOrder.push(element)
-  //     // })
-  //   }
-  //   console.log(res);
-
-  //   if (resName === 'getRes') {
-  //     let resN = localStorage.getItem(resName) !== null
-  //       ? localStorage.getItem(resName)
-  //       : JSON.stringify([]);
-  //     resN = JSON.parse(resN);
-  //     if (resN.length >= 10) resN.pop();
-  //     resN.unshift(res);
-  //     res = resN;
-  //   }
-
-  //   localStorage.setItem(resName, JSON.stringify(res));
-  //   console.log(localStorage);
-  // }
-
-  startGame() {
-    this.gameState = 'play';
-    // clearInterval(Puzzle.timer);
-    // Puzzle.stepSpan.innerText = '0';
-    // const arrauDiv = [];
-    // document.querySelectorAll('.wrapper_puzzle__container ').forEach((elem) => {
-    //   arrauDiv.push(elem);
-    //   elem.remove();
-    // });
-    // arrauDiv.sort(() => Math.random() - 0.5);
-    // arrauDiv.forEach((elem) => {
-    //   this.mainContainerWrapperPuzzle.append(elem);
-    // });
-    // Puzzle.minSpan.innerText = '00';
-    // Puzzle.secSpan.innerText = '00';
-    // let min = 0;
-    // let sec = 0;
-    // Puzzle.timer = setInterval(() => {
-    //   sec += 1;
-    //   if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
-    //   else if (sec >= 10 && sec < 60) Puzzle.secSpan.innerText = sec;
-    //   if (sec === 60) {
-    //     Puzzle.secSpan.innerText = '00';
-    //     min += 1;
-    //     sec = 0;
-    //     if (min < 10) Puzzle.minSpan.innerText = `0${min}`;
-    //     else if (min >= 10 && min < 60) Puzzle.minSpan.innerText = min;
-    //   }
-    // }, 1000);
+  setPuzzleSize(e) {
+    if (e.target.classList.contains('size_puzzle')) {
+      if (Puzzle.gameState === 'play') {
+        alert('First stop or save the game');
+      } else if (Puzzle.gameState !== 'pause') {
+        this.renderPuzzle(e.target.innerText[0]);
+      }
+    }
   }
 }
