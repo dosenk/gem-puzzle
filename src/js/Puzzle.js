@@ -1,4 +1,4 @@
-// import { ResolvePlugin } from 'webpack';
+import Modal from './Modal';
 
 export default class Puzzle {
   constructor(size, SOLUTIONS) {
@@ -6,6 +6,7 @@ export default class Puzzle {
     this.solutions = SOLUTIONS;
     this.timer = null;
     Puzzle.gameState = 'stop'; // 'pause', 'play'
+    Puzzle.movesFromUser = [];
     this.directions = new Map(
       [
         ['D_UP', 'top'],
@@ -16,7 +17,7 @@ export default class Puzzle {
     );
     this.movePuzzle = false;
     this.imageCanvas = Puzzle.getRandomImageNumber();
-    this.speed = 20;
+    this.speed = 15;
     this.moveArr = [];
   }
 
@@ -82,9 +83,9 @@ export default class Puzzle {
     mainContainer.append(mainContainerWrapperInfo, mainContainerWrapper, mainContainerPuzzleSize);
     const modal = Puzzle.createElem('div', [], 'modal');
     Puzzle.modalWindow = Puzzle.createElem('div', [], 'modal_window'); // '<div class="modal_window"></div>'
-    Puzzle.modalWindow.innerHTML = '<div class="modal_window__info"></div>';
-    const buttonOk = Puzzle.createElem('div', [], 'modal_window__ok');
-    buttonOk.innerHTML = '<p>OK</p>';
+    Puzzle.modalWindow.innerHTML = '<div class="modal_window__info"><p></p></div>';
+    const buttonOk = Puzzle.createElem('div', [], 'modal_window__btn');
+    buttonOk.innerHTML = '<button>OK</button>';
     Puzzle.modalWindow.append(buttonOk);
     const footer = Puzzle.createElem('footer', [], 'puzzle_footer');
     modal.append(Puzzle.modalWindow);
@@ -92,13 +93,14 @@ export default class Puzzle {
     document.body.append(header, mainContainer, footer, modal);
   }
 
-  renderPuzzle(num = null) {
+  renderPuzzle(num = null, image = null) {
     clearInterval(Puzzle.timer);
     Puzzle.stepSpan.innerText = '0';
     Puzzle.minSpan.innerText = '00';
     Puzzle.secSpan.innerText = '00';
     this.image = new Image();
-    this.image.src = `https://raw.githubusercontent.com/irinainina/image-data/master/box/${this.imageCanvas}.jpg`;
+    const imageForPuzzle = (image === null) ? this.imageCanvas : image;
+    this.image.src = `https://raw.githubusercontent.com/irinainina/image-data/master/box/${imageForPuzzle}.jpg`;
     this.image.onload = () => {
       this.mainContainerWrapperPuzzle.innerHTML = '';
       this.innerText = '0';
@@ -171,7 +173,8 @@ export default class Puzzle {
 
   changeCanvasImg() {
     if (Puzzle.gameState === 'play') {
-      alert('please, first stop and save game/ then change image');
+      const info = 'Please, first stop and save game, then change image.';
+      Modal.drowModal(info);
     } else if (Puzzle.gameState !== 'pause') {
       this.imageCanvas = Puzzle.getRandomImageNumber();
       this.renderPuzzle(this.size, this.imageCanvas);
@@ -279,6 +282,7 @@ export default class Puzzle {
         if (dndFlag && Puzzle.gameState === 'play' && direction.length > 0) {
           dndFlag = !dndFlag;
           resultNumbers = await this.moveContainer(selectedContainer, emptyContainer, direction);
+          Puzzle.setMovesFromUser(direction);
         } else {
           resultNumbers = await this.mouseUp(event);
         }
@@ -287,7 +291,8 @@ export default class Puzzle {
         document.onmouseup = null;
         if (await resultNumbers) {
           if (Puzzle.getHash(this.solutions[this.size - 3]) === Puzzle.getHash(resultNumbers)) {
-            alert('GOOD JOB, СОСУНОК ! ! !');
+            const info = 'Good job! You win!';
+            Modal.drowModal(info);
           }
         }
       };
@@ -303,6 +308,7 @@ export default class Puzzle {
       const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
       if (direction.length > 0) {
         resNumbers = await this.moveContainer(selectedContainer, emptyContainer, direction);
+        Puzzle.setMovesFromUser(direction);
       }
     }
     return resNumbers.length > 0 ? resNumbers : false;
@@ -507,10 +513,27 @@ export default class Puzzle {
   setPuzzleSize(e) {
     if (e.target.classList.contains('size_puzzle')) {
       if (Puzzle.gameState === 'play') {
-        alert('First stop or save the game');
+        const info = 'First stop and save the game';
+        Modal.drowModal(info);
       } else if (Puzzle.gameState !== 'pause') {
         this.renderPuzzle(e.target.innerText[0]);
       }
+    }
+  }
+
+  static reverseMove(move) {
+    let moveDirection = '';
+    if (move === 'D_LEFT') moveDirection = 'D_RIGHT';
+    if (move === 'D_RIGHT') moveDirection = 'D_LEFT';
+    if (move === 'D_UP') moveDirection = 'D_DOWN';
+    if (move === 'D_DOWN') moveDirection = 'D_UP';
+    return moveDirection;
+  }
+
+  static setMovesFromUser(direction) {
+    if (direction !== '') Puzzle.movesFromUser.unshift(Puzzle.reverseMove(direction));
+    if (Puzzle.movesFromUser[1] === Puzzle.reverseMove(Puzzle.movesFromUser[2])) {
+      Puzzle.movesFromUser.splice(1, 2);
     }
   }
 }

@@ -1,14 +1,16 @@
 import Puzzle from './Puzzle';
 import Preloader from './Preloader';
+import Modal from './Modal';
 
 export default class State extends Puzzle {
   constructor(size, SOLUTIONS) {
     super();
     this.edirections = ['D_LEFT', 'D_RIGHT', 'D_UP', 'D_DOWN'];
     this.visited = new Set();
-    this.visitedClosed = [];
     this.size = size;
     this.solutions = SOLUTIONS;
+    this.moveForShuffle = [];
+    this.reverseMoveForShuffle = [];
   }
 
   addListenerState() {
@@ -24,32 +26,36 @@ export default class State extends Puzzle {
       const trueSolution = this.solutions[Math.sqrt(numbers.length) - 3];
       // Preloader.start();
       if (numbers.length > 16) {
-        result.path = this.moveArr;
+        result.path = this.reverseMoveForShuffle;
+        result.path.unshift(...Puzzle.movesFromUser);
         result.foundPath = true;
       } else {
         result = await this.findPath(numbers, trueSolution);
       }
       if (await result.foundPath) {
-        console.log(result);
         // Preloader.stop();
         await this.moveContainerSolution(result.path, numbers);
       } else {
-        console.log(result);
+        Modal.drowModal(result.info);
       }
       Puzzle.gameState = 'stop';
     } else if (Puzzle.gameState !== 'pause') {
-      alert('first stop and save the game');
+      const info = 'First stop and save the game';
+      Modal.drowModal(info);
     }
   }
 
   async shufflePuzzles() {
     if (Puzzle.gameState === 'play') {
-      alert('first stop and save the game');
+      const info = 'First stop and save the game';
+      Modal.drowModal(info);
     } else if (Puzzle.gameState !== 'pause') {
       const numbers = await Puzzle.getNumbers();
-      this.moveArr = [];
+      this.moveForShuffle = [];
+      this.reverseMoveForShuffle = [];
+      Puzzle.movesFromUser = [];
       await this.mix(numbers);
-      const path = this.moveArr.slice();
+      const path = this.moveForShuffle.slice();
       const resMove = await this.moveContainerSolution(path, numbers);
       if (resMove) {
         Puzzle.timer = Puzzle.setTimer();
@@ -201,7 +207,7 @@ export default class State extends Puzzle {
     if (finalStateHash === Puzzle.getHash(startState)) {
       return {
         foundPath: false,
-        info: 'no solution required',
+        info: 'No solution required!</br> Please start the game!',
       };
     }
 
@@ -258,22 +264,25 @@ export default class State extends Puzzle {
         arrayMoves.push(element);
       }
     });
-    if (this.moveArr.length === 0) {
+    if (this.moveForShuffle.length === 0) {
       random = State.randomInteger(1, newArray.length);
-      this.moveArr.push(arrayMoves[random - 1]);
+      this.moveForShuffle.push(arrayMoves[random - 1]);
+      this.reverseMoveForShuffle.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
     } else {
       random = State.randomInteger(1, newArray.length);
       const randomMove = arrayMoves[random - 1];
-      if ((this.moveArr[this.moveArr.length - 1] === 'D_LEFT' && randomMove === 'D_RIGHT')
-                || (this.moveArr[this.moveArr.length - 1] === 'D_RIGHT' && randomMove === 'D_LEFT')
-                || (this.moveArr[this.moveArr.length - 1] === 'D_UP' && randomMove === 'D_DOWN')
-                || (this.moveArr[this.moveArr.length - 1] === 'D_DOWN' && randomMove === 'D_UP')) {
+      if ((this.moveForShuffle[this.moveForShuffle.length - 1] === 'D_LEFT' && randomMove === 'D_RIGHT')
+                || (this.moveForShuffle[this.moveForShuffle.length - 1] === 'D_RIGHT' && randomMove === 'D_LEFT')
+                || (this.moveForShuffle[this.moveForShuffle.length - 1] === 'D_UP' && randomMove === 'D_DOWN')
+                || (this.moveForShuffle[this.moveForShuffle.length - 1] === 'D_DOWN' && randomMove === 'D_UP')) {
         newArray.splice(random - 1, 1);
         arrayMoves.splice(random - 1, 1);
         random = State.randomInteger(1, newArray.length);
-        this.moveArr.push(arrayMoves[random - 1]);
+        this.moveForShuffle.push(arrayMoves[random - 1]);
+        this.reverseMoveForShuffle.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
       } else {
-        this.moveArr.push(arrayMoves[random - 1]);
+        this.moveForShuffle.push(arrayMoves[random - 1]);
+        this.reverseMoveForShuffle.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
       }
     }
     return newArray[random - 1];
