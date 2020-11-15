@@ -1,4 +1,6 @@
 import Modal from './Modal';
+import Preloader from './Preloader';
+import Score from './Score';
 
 export default class Puzzle {
   constructor(size, SOLUTIONS) {
@@ -6,6 +8,7 @@ export default class Puzzle {
     this.solutions = SOLUTIONS;
     this.timer = null;
     Puzzle.gameState = 'stop'; // 'pause', 'play'
+    Puzzle.gameStarted = false; // false - if game not started or game the finished
     Puzzle.movesFromUser = [];
     this.directions = new Map(
       [
@@ -37,7 +40,7 @@ export default class Puzzle {
     mainContainerSettings.innerHTML = '<input class=\'settingButton startGame\' name=\'startGame\' type=\'button\' value=\'Размешать и начать\'>';
     mainContainerSettings.innerHTML += '<input class=\'settingButton stopGame\' name=\'stopGame\' type=\'button\' value=\'Стоп\'>';
     mainContainerSettings.innerHTML += '<input class=\'settingButton saveGame\' name=\'saveGame\' type=\'button\' value=\'Сохранить\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton getResults\' name=\'getResults\' type=\'button\' value=\'Результаты\'>';
+    mainContainerSettings.innerHTML += '<input class=\'settingButton getScore\' name=\'getScore\' type=\'button\' value=\'Результаты\'>';
     mainContainerSettings.innerHTML += '<input class=\'settingButton getSolution\' name=\'getSolution\' type=\'button\' value=\'Решение\'>';
     const mainContainerWrapper = Puzzle.createElem('div', [], 'wrapper');
     const mainContainerWrapperInfo = Puzzle.createElem('div', [], 'wrapper_info');
@@ -90,49 +93,59 @@ export default class Puzzle {
     const footer = Puzzle.createElem('footer', [], 'puzzle_footer');
     modal.append(Puzzle.modalWindow);
     header.append(mainContainerSettings);
+    // ######################## SCORE ###########################
+    // Puzzle.scorePage = Score.renderScorePage();
     document.body.append(header, mainContainer, footer, modal);
   }
 
-  renderPuzzle(num = null, image = null) {
+  renderPuzzle(numbers = null,
+    puzzleSize = null,
+    image = null,
+    stepSpan = '00',
+    minSpan = '00',
+    secSpan = '00') {
     clearInterval(Puzzle.timer);
-    Puzzle.stepSpan.innerText = '0';
-    Puzzle.minSpan.innerText = '00';
-    Puzzle.secSpan.innerText = '00';
+    Puzzle.stepSpan.innerText = stepSpan;
+    Puzzle.minSpan.innerText = minSpan;
+    Puzzle.secSpan.innerText = secSpan;
     this.image = new Image();
     const imageForPuzzle = (image === null) ? this.imageCanvas : image;
     this.image.src = `https://raw.githubusercontent.com/irinainina/image-data/master/box/${imageForPuzzle}.jpg`;
     this.image.onload = () => {
       this.mainContainerWrapperPuzzle.innerHTML = '';
       this.innerText = '0';
-      this.size = num === null ? this.size : num;
+      this.size = puzzleSize === null ? this.size : puzzleSize;
+      const numbersForPuzzle = numbers === null ? this.solutions[this.size - 3] : numbers;
       const sizeCanvas = this.getCanvasSizeFromResolution(this.size);
       const size = this.size * this.size;
-      for (let i = 1; i <= size - 1; i += 1) {
+      for (let i = 0; i <= size - 1; i += 1) {
         const attribute = [];
-        const puzzleContainer = Puzzle.createElem('div', attribute, 'wrapper_puzzle__container');
+        let puzzleContainer;
+        if (numbersForPuzzle[i] === 0) {
+          puzzleContainer = Puzzle.createElem('div', [['id', 'last_container']], 'wrapper_puzzle__container');
+          puzzleContainer.innerHTML = `<div id="container_${size}"><p class="wrapper_puzzle__container-last">0</p></div>`;
+        } else {
+          puzzleContainer = Puzzle.createElem('div', attribute, 'wrapper_puzzle__container');
+          const container = Puzzle.createElem('div', [['id', `container_${numbersForPuzzle[i]}`]], 'container');
+          const canvas = Puzzle.createElem('canvas', [['width', `${sizeCanvas}`], ['height', `${sizeCanvas}`]], 'wrapper_puzzle__canvas');
+          this.drowCanvasImg(canvas, numbersForPuzzle[i], this.size);
+          const containerText = Puzzle.createElem('p', [], 'wrapper_puzzle__container-text');
+          containerText.innerText = numbersForPuzzle[i];
+          container.append(containerText, canvas);
+          puzzleContainer.append(container);
+        }
         puzzleContainer.classList.add(`col_${this.size}`);
-        const container = Puzzle.createElem('div', [['id', `container_${i}`]], 'container');
-        const canvas = Puzzle.createElem('canvas', [['width', `${sizeCanvas}`], ['height', `${sizeCanvas}`]], 'wrapper_puzzle__canvas');
-        this.drowCanvasImg(canvas, i, this.size);
-        const containerText = Puzzle.createElem('p', [], 'wrapper_puzzle__container-text');
-        containerText.innerText = i;
-        container.append(containerText, canvas);
-        puzzleContainer.append(container);
         this.mainContainerWrapperPuzzle.append(puzzleContainer);
-        Puzzle.answer += i;
       }
-      Puzzle.answer += size;
-      const lastPuzzleContainer = Puzzle.createElem('div', [['id', 'last_container']], 'wrapper_puzzle__container');
-      lastPuzzleContainer.innerHTML = `<div id="container_${size}"><p class="wrapper_puzzle__container-last">0</p></div>`;
-      lastPuzzleContainer.classList.add(`col_${this.size}`);
-      this.mainContainerWrapperPuzzle.append(lastPuzzleContainer);
+      const preloader = Preloader.render();
+      this.mainContainerWrapperPuzzle.append(preloader);
       document.querySelector('.puzzleSize p').innerHTML = `Размер поля ${this.size}x${this.size}`;
     };
   }
 
   getCanvasSizeFromResolution() {
     let sizeCanvas;
-    const resolution = window.screen.width;
+    const resolution = document.body.scrollWidth;
     if (resolution > 1280) {
       sizeCanvas = Math.trunc(600 / this.size);
     } else if (resolution <= 1280 && resolution >= 768) {
@@ -144,12 +157,10 @@ export default class Puzzle {
   }
 
   drowCanvasImg(canvas, i, size) {
-    // const canvas = document.querySelector('.wrapper_puzzle__canvas');
     const idx = i - 1;
     const lengthPuzzle = size * size;
     const cnv = canvas;
     const context = cnv.getContext('2d');
-
     const sourceWidth = this.image.width / size;
     const sourceHeight = this.image.height / size;
     const sourceX = Puzzle.getX(idx, lengthPuzzle) * sourceWidth;
@@ -177,7 +188,7 @@ export default class Puzzle {
       Modal.drowModal(info);
     } else if (Puzzle.gameState !== 'pause') {
       this.imageCanvas = Puzzle.getRandomImageNumber();
-      this.renderPuzzle(this.size, this.imageCanvas);
+      this.renderPuzzle(null, this.size, this.imageCanvas);
     }
   }
 
@@ -187,7 +198,7 @@ export default class Puzzle {
 
   addListener() {
     document.querySelector('.puzzleSize').addEventListener('click', (e) => this.setPuzzleSize(e));
-    document.querySelector('.setting').addEventListener('click', (e) => Puzzle.installSettings(e));
+    document.querySelector('.setting').addEventListener('click', (e) => this.installSettings(e));
     document.querySelector('.wrapper_info__chImage').addEventListener('click', () => this.changeCanvasImg());
     this.mainContainerWrapperPuzzle.addEventListener('mousedown', (e) => this.dragAndDrop(e));
   }
@@ -282,17 +293,23 @@ export default class Puzzle {
         if (dndFlag && Puzzle.gameState === 'play' && direction.length > 0) {
           dndFlag = !dndFlag;
           resultNumbers = await this.moveContainer(selectedContainer, emptyContainer, direction);
+          Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
           Puzzle.setMovesFromUser(direction);
         } else {
           resultNumbers = await this.mouseUp(event);
         }
-        Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
         Puzzle.gameState = 'play';
         document.onmouseup = null;
         if (await resultNumbers) {
           if (Puzzle.getHash(this.solutions[this.size - 3]) === Puzzle.getHash(resultNumbers)) {
-            const info = 'Good job! You win!';
+            const steps = Puzzle.stepSpan.innerText;
+            const secSolution = Puzzle.secSpan.innerText;
+            const minSolution = Puzzle.minSpan.innerText;
+            const info = `Hooray! You solved the puzzle in ${minSolution}:${secSolution} and ${steps} moves`;
             Modal.drowModal(info);
+            clearInterval(Puzzle.timer);
+            Puzzle.gameState = 'stop';
+            Score.saveBestScore(this.size, steps, minSolution, secSolution, this.imageCanvas);
           }
         }
       };
@@ -307,6 +324,7 @@ export default class Puzzle {
       const emptyContainer = document.querySelector('#last_container');
       const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
       if (direction.length > 0) {
+        Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
         resNumbers = await this.moveContainer(selectedContainer, emptyContainer, direction);
         Puzzle.setMovesFromUser(direction);
       }
@@ -393,7 +411,9 @@ export default class Puzzle {
       });
     });
 
-    if (await promise) answer = Puzzle.getNumbers();
+    if (await promise) {
+      answer = Puzzle.getNumbers();
+    }
     return answer;
   }
 
@@ -456,12 +476,12 @@ export default class Puzzle {
     return !result;
   }
 
-  static setTimer() {
-    Puzzle.stepSpan.innerText = '0';
-    Puzzle.minSpan.innerText = '00';
-    Puzzle.secSpan.innerText = '00';
-    let min = 0;
-    let sec = 0;
+  static setTimer(step = '0', minSpan = '00', secSpan = '00') {
+    Puzzle.stepSpan.innerText = step;
+    Puzzle.minSpan.innerText = minSpan;
+    Puzzle.secSpan.innerText = secSpan;
+    let min = +minSpan;
+    let sec = +secSpan;
     return setInterval(() => {
       sec += 1;
       if (sec < 10) Puzzle.secSpan.innerText = `0${sec}`;
@@ -488,25 +508,56 @@ export default class Puzzle {
     numbers.forEach((elem) => this.mainContainerWrapperPuzzle.append(elem));
   }
 
-  static installSettings(e) {
-  // ################# start game #######################
-  // if (e.target.getAttribute('name') === 'startGame') {
-  // Puzzle.gameState = 'play';
-  // this.shufflePuzzle();
-  // if (Puzzle.gameState === 'play') {
-  //   clearTimeout(this.timer);
-  //   this.timer = this.setTimer();
-  // }
-  // }
-
-    // ################# get solution #######################
-    // if (e.target.getAttribute('name') === 'getSolution') {
-    //   Puzzle.gameState = 'pause';
-    //   clearTimeout(this.timer);
-    // }
+  async installSettings(e) {
+    // ################# saveGame #######################
+    if (e.target.getAttribute('name') === 'saveGame') {
+      let info = '';
+      if (Puzzle.gameState === 'stop' && Puzzle.gameStarted) {
+        Puzzle.gameStarted = false;
+        Score.saveStagedScore(
+          this.size,
+          Puzzle.stepSpan.innerText,
+          Puzzle.minSpan.innerText,
+          Puzzle.secSpan.innerText,
+          this.imageCanvas,
+          Puzzle.getNumbers(),
+        );
+        info = 'Game save';
+      } else {
+        const startStopWorld = Puzzle.gameStarted ? 'stop' : 'start';
+        info = `Please. First ${startStopWorld} the game, then save game!`;
+      }
+      Modal.drowModal(info);
+    }
+    // ################# stopGame #######################
     if (e.target.getAttribute('name') === 'stopGame') {
       Puzzle.gameState = 'stop';
       clearInterval(Puzzle.timer);
+    }
+    if (e.target.getAttribute('name') === 'getScore') {
+      await Score.renderScorePage();
+      const stagedTable = document.querySelector('.score_container__staged_score-table');
+      stagedTable.addEventListener('click', (event) => {
+        if (event.target.closest('button')) {
+          clearInterval(Puzzle.timer);
+          const id = event.target.parentNode.childNodes[0].innerText - 1;
+          const localstoreStagedScore = JSON.parse(localStorage.getItem('stagedScore'));
+          this.renderPuzzle(
+            localstoreStagedScore[id].numbers,
+            localstoreStagedScore[id].size,
+            localstoreStagedScore[id].imageNumber,
+          );
+          Score.closeScore();
+          Puzzle.gameState = 'play';
+          Puzzle.gameStarted = true;
+          Puzzle.timer = Puzzle.setTimer(
+            localstoreStagedScore[id].steps,
+            localstoreStagedScore[id].min,
+            localstoreStagedScore[id].sec,
+          );
+          // console.log(localstoreStagedScore[id]);
+        }
+      });
     }
   }
 
@@ -516,7 +567,7 @@ export default class Puzzle {
         const info = 'First stop and save the game';
         Modal.drowModal(info);
       } else if (Puzzle.gameState !== 'pause') {
-        this.renderPuzzle(e.target.innerText[0]);
+        this.renderPuzzle(null, e.target.innerText[0]);
       }
     }
   }

@@ -24,7 +24,6 @@ export default class State extends Puzzle {
       let result = [];
       const numbers = await Puzzle.getNumbers();
       const trueSolution = this.solutions[Math.sqrt(numbers.length) - 3];
-      // Preloader.start();
       if (numbers.length > 16) {
         result.path = this.reverseMoveForShuffle;
         result.path.unshift(...Puzzle.movesFromUser);
@@ -32,12 +31,15 @@ export default class State extends Puzzle {
       } else {
         result = await this.findPath(numbers, trueSolution);
       }
-      if (await result.foundPath) {
-        // Preloader.stop();
-        await this.moveContainerSolution(result.path, numbers);
-      } else {
-        Modal.drowModal(result.info);
-      }
+      Preloader.start();
+      setTimeout(async () => {
+        if (await result.foundPath) {
+          Preloader.stop();
+          await this.moveContainerSolution(result.path, numbers);
+        } else {
+          Modal.drowModal(result.info);
+        }
+      }, 10);
       Puzzle.gameState = 'stop';
     } else if (Puzzle.gameState !== 'pause') {
       const info = 'First stop and save the game';
@@ -50,6 +52,7 @@ export default class State extends Puzzle {
       const info = 'First stop and save the game';
       Modal.drowModal(info);
     } else if (Puzzle.gameState !== 'pause') {
+      Puzzle.gameStarted = true;
       const numbers = await Puzzle.getNumbers();
       this.moveForShuffle = [];
       this.reverseMoveForShuffle = [];

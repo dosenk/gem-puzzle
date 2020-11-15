@@ -1,0 +1,66 @@
+.score {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(102, 102, 102, 0.7);
+  z-index: 10;
+  // &_active {
+  //   display: flex;
+  // }
+  &_container {
+    position: relative;
+    width: 80%;
+    height: 80%;
+    background-color: #ffffff;
+    display: flex;
+    justify-content: space-around;
+    &__best_score-table {
+      width: 45%;
+      height: 20px;
+      margin-top: 10px;
+      // height: 90%;
+      border-collapse: collapse;
+      th,
+      tr,
+      td {
+        border: 1px solid black;
+      }
+      .td_best-score__game-image {
+        width: 25px;
+        height: 25px;
+      }
+    }
+    &__staged_score-table {
+      width: 45%;
+      height: 20px;
+      margin-top: 10px;
+      border-collapse: collapse;
+      th,
+      tr,
+      td {
+        border: 1px solid black;
+      }
+      .td_staged-score__game-image {
+        width: 25px;
+        height: 25px;
+      }
+      button {
+        cursor: pointer;
+      }
+    }
+    &_close-Btn {
+      position: absolute;
+      width: 180px;
+      height: 40px;
+      bottom: 5px;
+      &:hover {
+        cursor: pointer;
+      }
+    }
+  }
+}
