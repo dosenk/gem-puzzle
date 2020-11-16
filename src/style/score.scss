@@ -8,31 +8,71 @@
   width: 100%;
   height: 100%;
   background: rgba(102, 102, 102, 0.7);
-  z-index: 10;
-  // &_active {
-  //   display: flex;
-  // }
+  z-index: 1000;
   &_container {
     position: relative;
-    width: 80%;
-    height: 80%;
+    width: 1000px;
+    height: 680px;
     background-color: #ffffff;
     display: flex;
     justify-content: space-around;
+    @media screen and (max-width: 1280px) {
+      width: 715px;
+      left: 13px;
+    }
+    @media screen and (max-width: 767px) {
+      width: 295px;
+      height: 400px;
+      font-size: 12px;
+      left: 7px;
+    }
     &__best_score-table {
       width: 45%;
-      height: 20px;
+      // height: 20px;
       margin-top: 10px;
-      // height: 90%;
       border-collapse: collapse;
+      @media screen and (max-width: 767px) {
+        width: 38%;
+      }
+      tr {
+        height: 60px;
+        @media screen and (max-width: 767px) {
+          height: 30px;
+        }
+      }
       th,
       tr,
       td {
-        border: 1px solid black;
+        border-bottom: 1px solid black;
+        vertical-align: middle;
       }
-      .td_best-score__game-image {
-        width: 25px;
-        height: 25px;
+      .main {
+        height: 20px;
+        @media screen and (max-width: 767px) {
+          height: 30px;
+        }
+      }
+      .second_best-score,
+      .third_best-score {
+        height: 13px;
+      }
+      .td_best-score__steps,
+      .td_best-score__time {
+        text-align: center;
+      }
+      .td_best-score__game {
+        display: flex;
+        border: none;
+        justify-content: space-around;
+        align-items: center;
+        height: 100%;
+        img {
+          width: 50px;
+          height: 50px;
+          @media screen and (max-width: 767px) {
+            display: none;
+          }
+        }
       }
     }
     &__staged_score-table {
@@ -40,26 +80,95 @@
       height: 20px;
       margin-top: 10px;
       border-collapse: collapse;
+      @media screen and (max-width: 767px) {
+        width: 60%;
+      }
+      tr {
+        height: 60px;
+        @media screen and (max-width: 767px) {
+          height: 30px;
+        }
+      }
+      .main {
+        height: 30px;
+      }
+      .second_staged-score {
+        height: 25px;
+      }
       th,
       tr,
       td {
-        border: 1px solid black;
+        border-bottom: 1px solid black;
+        vertical-align: middle;
       }
-      .td_staged-score__game-image {
-        width: 25px;
-        height: 25px;
-      }
-      button {
-        cursor: pointer;
+      .td_staged-score__load-game {
+        display: flex;
+        border: none;
+        justify-content: center;
+        button {
+          cursor: pointer;
+          width: 110px;
+          height: 30px;
+          @media screen and (max-width: 1280px) {
+            width: 65px;
+            height: 25px;
+          }
+          @media screen and (max-width: 767px) {
+            width: 40px;
+            height: 20px;
+          }
+        }
       }
     }
     &_close-Btn {
-      position: absolute;
-      width: 180px;
+      border-radius: 50%;
+      width: 40px;
       height: 40px;
-      bottom: 5px;
+      top: -359px;
+      right: 1px;
+      position: relative;
+      border: 1px solid #ffffff;
+      background-image: url("./../assets/images/close-button.png");
+      background-repeat: no-repeat;
+      background-position: center;
+      background-color: #fff;
+      transition: all 0.5s;
       &:hover {
         cursor: pointer;
+        transform: rotate(180deg);
+      }
+      @media screen and (max-width: 1280px) {
+        width: 26px;
+        height: 26px;
+        top: -352px;
+        right: -9px;
+      }
+      @media screen and (max-width: 767px) {
+        width: 12px;
+        height: 12px;
+        top: -207px;
+        right: -4px;
+        background-size: 8px;
+      }
+    }
+    .td_staged-score__game {
+      display: flex;
+      border: none;
+      justify-content: space-around;
+      align-items: center;
+      height: 100%;
+      img {
+        width: 50px;
+        height: 50px;
+        @media screen and (max-width: 767px) {
+          display: none;
+        }
+      }
+    }
+    .td_staged-score__info {
+      padding-left: 28px;
+      @media screen and (max-width: 767px) {
+        padding: 0;
       }
     }
   }

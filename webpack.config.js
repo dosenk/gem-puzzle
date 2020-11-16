@@ -2,7 +2,7 @@ const path = require('path');
 const HTMLWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
-// const CopyPlugin = require('copy-webpack-plugin');
+const CopyPlugin = require('copy-webpack-plugin');
 
 const isDev = process.env.NODE_ENV === 'development';
 
@@ -23,25 +23,20 @@ module.exports = {
     new HTMLWebpackPlugin({
       filename: 'index.html',
       template: './src/index.html',
-      // chunks: ['main'],
     }),
-    // new HTMLWebpackPlugin({
-    //   filename: 'pets.html',
-    //   template: './src/pages/pets/pets.html',
-    //   chunks: ['petsPage'],
-    // }),
     new CleanWebpackPlugin(),
     new MiniCssExtractPlugin({
       filename: isDev ? '[name].css' : '[name].[contenthash].css',
       chunkFilename: isDev ? '[id].css' : '[id].[contenthash].css',
     }),
-    // new CopyPlugin(
-    //   {
-    //     patterns: [
-    //       { from: './src/assets/images', to: './images' },
-    //     ],
-    //   },
-    // ),
+    new CopyPlugin(
+      {
+        patterns: [
+          { from: './src/assets/sounds', to: './assets/sounds' },
+          { from: './src/assets/images/favicon.ico', to: './favicon.ico' },
+        ],
+      },
+    ),
   ],
   module: {
     rules: [
@@ -72,7 +67,6 @@ module.exports = {
         loader: 'file-loader',
         options: {
           name: '[name].[ext]',
-          // outputPath: 'images',
         },
       },
       {

@@ -11,7 +11,6 @@ export default class State extends Puzzle {
     this.size = size;
     this.solutions = SOLUTIONS;
     this.moveForShuffle = [];
-    // this.reverseMoveForShuffle = [];
   }
 
   addListenerState() {
@@ -21,7 +20,7 @@ export default class State extends Puzzle {
   }
 
   async doCorrectSolution() {
-    if (Puzzle.gameState === 'stop') {
+    if (Puzzle.gameState !== 'pause') {
       clearTimeout(Puzzle.timer);
       let result = [];
       const numbers = Puzzle.getNumbers();
@@ -29,7 +28,6 @@ export default class State extends Puzzle {
       await Preloader.start();
       setTimeout(async () => {
         if (numbers.length > 16) {
-          // console.log(Puzzle.movesForSolution);
           result.path = Puzzle.movesForSolution;
           result.path.unshift(...Puzzle.movesFromUser);
           if (result.path.length > 0) {
@@ -44,6 +42,7 @@ export default class State extends Puzzle {
         Preloader.stop();
         if (await result.foundPath) {
           await this.moveContainerSolution(result.path, numbers);
+          Puzzle.changePauseBtn('pause');
           Puzzle.movesForSolution = [];
           Puzzle.movesFromUser = [];
           Puzzle.gameState = 'stop';
@@ -52,17 +51,12 @@ export default class State extends Puzzle {
           Modal.drowModal(result.info);
         }
       }, 100);
-    } else if (Puzzle.gameState !== 'pause') {
-      const info = 'First press pause or save the game';
-      Modal.drowModal(info);
     }
   }
 
   async shufflePuzzles() {
-    if (Puzzle.gameState === 'play') {
-      const info = 'First click pause or save the game';
-      Modal.drowModal(info);
-    } else if (Puzzle.gameState !== 'pause') {
+    if (Puzzle.gameState !== 'pause') {
+      clearInterval(Puzzle.timer);
       Puzzle.changePauseBtn('pause');
       Puzzle.gameStarted = true;
       const numbers = await Puzzle.getNumbers();
@@ -71,7 +65,7 @@ export default class State extends Puzzle {
       const path = this.moveForShuffle.slice();
       const resMove = await this.moveContainerSolution(path, numbers);
       if (resMove) {
-        Puzzle.timer = Puzzle.setTimer();
+        Puzzle.timer = Puzzle.setTimer('0', '00', '00');
         Puzzle.gameState = 'play';
         Puzzle.movesFromUser = [];
         this.moveForShuffle = [];
@@ -115,7 +109,7 @@ export default class State extends Puzzle {
     return index;
   }
 
-  move(direction, numbers) { // return pair = [bool, [[str], [array]]]
+  move(direction, numbers) {
     const zeroIndex = numbers.indexOf(0);
     const stateLength = numbers.length;
     const zeroX = Puzzle.getX(zeroIndex, stateLength);
@@ -213,7 +207,7 @@ export default class State extends Puzzle {
     );
   }
 
-  async findPath(startState, finalState) { // startState[[numbers], [path]]
+  async findPath(startState, finalState) {
     const finalStateHash = Puzzle.getHash(finalState);
     let findPathFlag = false;
     const queue = [];
@@ -227,8 +221,7 @@ export default class State extends Puzzle {
     }
 
     while (queue.length !== 0) {
-      // firstState = { state: [numbers], path: ['D_UP', 'D_DOWN' ...]}
-      const firstState = queue.shift(); // take first element
+      const firstState = queue.shift();
       const firstQueueHash = Puzzle.getHash(firstState.state);
       this.visited.add(firstQueueHash);
       const earlyQueue = [];
@@ -259,7 +252,16 @@ export default class State extends Puzzle {
   }
 
   mix(array) {
-    let countMoves = State.randomInteger(30, 100);
+    let min = 0;
+    let max = 0;
+    if (array.length < 24) {
+      min = 30;
+      max = 50;
+    } else {
+      min = 140;
+      max = 160;
+    }
+    let countMoves = State.randomInteger(min, max);
     let arr = array;
     while (countMoves !== 0) {
       arr = this.steps(arr);
@@ -308,34 +310,27 @@ export default class State extends Puzzle {
     return Math.round(rand);
   }
 
-  // ################# saveGame #######################
   static saveGame(e) {
-    if (e.target.getAttribute('name') === 'saveGame' && Puzzle.gameState !== 'pause') {
-      let info = '';
+    let info = '';
+    if (e.target.getAttribute('name') === 'saveGame' && Puzzle.gameState !== 'pause' && Puzzle.gameStarted) {
       const imgCanvasSrc = Puzzle.image.src;
       const imgCanvas = imgCanvasSrc.slice(imgCanvasSrc.lastIndexOf('/') + 1, -4);
       const numbers = Puzzle.getNumbers();
       const size = Math.sqrt(numbers.length);
       Puzzle.movesForSolution.unshift(...Puzzle.movesFromUser);
-      if (Puzzle.gameState === 'play') {
-        Puzzle.gameState = 'stop';
-        Puzzle.changePauseBtn('play');
-        clearInterval(Puzzle.timer);
-        Score.saveStagedScore(
-          size,
-          Puzzle.stepSpan.innerText,
-          Puzzle.minSpan.innerText,
-          Puzzle.secSpan.innerText,
-          imgCanvas,
-          numbers,
-          Puzzle.movesForSolution,
-        );
-        info = 'Game saved';
-      } else {
-        const startStopWorld = Puzzle.gameStarted ? 'stop' : 'start';
-        info = `Please. First ${startStopWorld} the game, then save game!`;
-      }
-      Modal.drowModal(info);
+      Score.saveStagedScore(
+        size,
+        Puzzle.stepSpan.innerText,
+        Puzzle.minSpan.innerText,
+        Puzzle.secSpan.innerText,
+        imgCanvas,
+        numbers,
+        Puzzle.movesForSolution,
+      );
+      info = 'Game saved';
+    } else {
+      info = 'Please, first started the game';
     }
+    Modal.drowModal(info);
   }
 }

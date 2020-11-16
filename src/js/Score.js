@@ -1,6 +1,6 @@
 export default class Score {
   static addListeners() {
-    Score.closeBtnScore.addEventListener('click', (e) => Score.closeScore(e));
+    Score.scoreDiv.addEventListener('click', (event) => Score.closeScore(event));
   }
 
   static createElem(element, atributes = [], ...classes) {
@@ -13,21 +13,16 @@ export default class Score {
   }
 
   static renderScorePage() {
-    // console.log(JSON.parse(localStorage.getItem('stagedScore')));
-    // console.log(JSON.parse(localStorage.getItem('stagedScore')));
     const localstBest = localStorage.getItem('bestScore') ? JSON.parse(localStorage.getItem('bestScore')) : [];
     const localstStaged = localStorage.getItem('stagedScore') ? JSON.parse(localStorage.getItem('stagedScore')) : [];
-
     Score.scoreDiv = Score.createElem('div', [], 'score');
     const scoreContainer = Score.createElem('div', [], 'score_container');
     const scoreContainerBestTable = Score.createElem('table', [], 'score_container__best_score-table');
     const scoreContainerStagedTable = Score.createElem('table', [], 'score_container__staged_score-table');
-    // tr main ############## BEST SCORE ##############################
     const trFirstBestScore = Score.createElem('tr', [], 'main');
     const thBestScore = Score.createElem('th', [['colspan', '4']], 'bestScore');
     thBestScore.innerText = 'Best Score';
     trFirstBestScore.append(thBestScore);
-    // second
     const trSecondBestScore = Score.createElem('tr', [['rowspan', '2']], 'second_best-score');
     const trThirdBestScore = Score.createElem('tr', [], 'third_best-score');
     const numberBestScore = Score.createElem('th', [['rowspan', '2']], 'number_best-score');
@@ -62,11 +57,9 @@ export default class Score {
         scoreContainerBestTable.append(tr);
       }
     }
-
-    // tr main ################################ STAGED SCORE ################################
     const trFirstStagedScore = Score.createElem('tr', [], 'main');
     const thStagedScore = Score.createElem('th', [['colspan', '4']], 'stagedScore');
-    thStagedScore.innerText = 'Staged Score';
+    thStagedScore.innerText = 'Saved games';
     trFirstStagedScore.append(thStagedScore);
     const trSecondStagedScore = Score.createElem('tr', [], 'second_staged-score');
     const numberStagedScore = Score.createElem('th', [], 'number_staged-score');
@@ -91,28 +84,28 @@ export default class Score {
         const tdGameImg = Score.createElem('img', [['src', src]], 'td_staged-score__game-image');
         tdGame.append(tdGameSize, tdGameImg);
         const tdInfo = Score.createElem('td', [], 'td_staged-score__info');
-        tdInfo.innerHTML = `<p class='staged-score_time'>${localstStaged[j].min}:${localstStaged[j].sec}</p>`;
-        tdInfo.innerHTML += `<p class='staged-score_steps'>${localstStaged[j].steps}</p>`;
-        const tdLoadGame = Score.createElem('button', [['value', 'load']], 'td_staged-score__load-game');
-        tdLoadGame.innerText = 'load';
-        tr.append(tdNum, tdGame, tdInfo, tdLoadGame);
+        const tdInfoMin = localstStaged[j].min === '00' ? '' : `${+localstStaged[j].min} min `;
+        tdInfo.innerHTML = `<p class='staged-score_time'> Time: ${tdInfoMin}${+localstStaged[j].sec} sec</p>`;
+        tdInfo.innerHTML += `<p class='staged-score_steps'>Steps: ${localstStaged[j].steps}</p>`;
+        const tdButton = Score.createElem('td', [], 'td_staged-score__load-game');
+        const button = Score.createElem('button', [['value', 'load']], 'button-load');
+        button.innerText = 'load';
+        tdButton.append(button);
+        tr.append(tdNum, tdGame, tdInfo, tdButton);
         scoreContainerStagedTable.append(tr);
       }
     }
-
-    // ############### BUTTON OK ###################
-    Score.closeBtnScore = Score.createElem('button', [], 'score_container_close-Btn');
-    Score.closeBtnScore.innerText = 'OK';
+    const closeBtnScore = Score.createElem('div', [], 'score_container_close-Btn');
     Score.addListeners();
-    // append in all container
-    scoreContainer.append(scoreContainerBestTable, scoreContainerStagedTable, Score.closeBtnScore);
-    Score.scoreDiv.append(scoreContainer);
+    scoreContainer.append(scoreContainerBestTable, scoreContainerStagedTable);
+    Score.scoreDiv.append(scoreContainer, closeBtnScore);
     document.body.append(Score.scoreDiv);
-    // return Score.scoreDiv;
   }
 
-  static closeScore() {
-    Score.scoreDiv.remove();
+  static closeScore(event) {
+    if (event.target.closest('.score_container') === null) {
+      Score.scoreDiv.remove();
+    }
   }
 
   static saveBestScore(size, steps, min, sec, imageNumber) {
@@ -148,9 +141,7 @@ export default class Score {
     stagedScore.unshift({
       size, steps, min, sec, imageNumber, numbers, solution,
     });
-    // console.log(stagedScore);
     if (stagedScore.length > 10) stagedScore.pop();
     localStorage.setItem('stagedScore', JSON.stringify(stagedScore));
-    // localStorage.clear();
   }
 }

@@ -7,8 +7,8 @@ export default class Puzzle {
     this.size = size;
     this.solutions = SOLUTIONS;
     this.timer = null;
-    Puzzle.gameState = 'stop'; // 'pause', 'play'
-    Puzzle.gameStarted = false; // false - if game not started or game the finished
+    Puzzle.gameState = 'stop';
+    Puzzle.gameStarted = false;
     Puzzle.movesFromUser = [];
     Puzzle.movesForSolution = [];
     this.directions = new Map(
@@ -21,7 +21,7 @@ export default class Puzzle {
     );
     this.movePuzzle = false;
     this.imageCanvas = Puzzle.getRandomImageNumber();
-    this.speed = 15;
+    this.speed = 10;
     this.moveArr = [];
   }
 
@@ -38,15 +38,13 @@ export default class Puzzle {
     const mainContainer = Puzzle.createElem('main', [], 'main_container');
     const header = Puzzle.createElem('header', [], 'puzzle_header');
     const mainContainerSettings = Puzzle.createElem('div', [], 'setting');
-    mainContainerSettings.innerHTML = '<input class=\'settingButton startGame\' name=\'startGame\' type=\'button\' value=\'Start game\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton stopGame\' name=\'stopGame\' type=\'button\' value=\'Pause\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton saveGame\' name=\'saveGame\' type=\'button\' value=\'Save\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton getScore\' name=\'getScore\' type=\'button\' value=\'Best score/Saved games\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton getSolution\' name=\'getSolution\' type=\'button\' value=\'Решение\'>';
+    mainContainerSettings.innerHTML = '<a class=\'settingButton startGame\' name=\'startGame\'>Start game</a>';
+    mainContainerSettings.innerHTML += '<a class=\'settingButton stopGame\' name=\'stopGame\'>Pause</a>';
+    mainContainerSettings.innerHTML += '<a class=\'settingButton saveGame\' name=\'saveGame\'>Save</a>';
+    mainContainerSettings.innerHTML += '<a class=\'settingButton getScore\' name=\'getScore\'>Best score/Saved games</a>';
+    mainContainerSettings.innerHTML += '<a class=\'settingButton getSolution\' name=\'getSolution\'>Solution</a>';
     const mainContainerWrapper = Puzzle.createElem('div', [], 'wrapper');
     const mainContainerWrapperInfo = Puzzle.createElem('div', [], 'wrapper_info');
-    const mainContainerWrapperInfoChImage = Puzzle.createElem('button', [], 'wrapper_info__chImage');
-    mainContainerWrapperInfoChImage.innerText = 'change image';
     const mainContainerWrapperInfoContainer = Puzzle.createElem('div', [], 'wrapper_info__container');
     const mainContainerWrapperInfoContainerSteps = Puzzle.createElem('p', [], 'wrapper_info__container');
     mainContainerWrapperInfoContainerSteps.innerText = 'Steps: ';
@@ -70,23 +68,21 @@ export default class Puzzle {
       mainContainerWrapperInfoContainerSteps,
       mainContainerWrapperInfoContainerTime,
     );
-    mainContainerWrapperInfo.append(
-      mainContainerWrapperInfoContainer,
-      mainContainerWrapperInfoChImage,
-    );
+    mainContainerWrapperInfo.append(mainContainerWrapperInfoContainer);
     this.mainContainerWrapperPuzzle = Puzzle.createElem('div', [], 'wrapper_puzzle');
     mainContainerWrapper.append(this.mainContainerWrapperPuzzle);
     const mainContainerPuzzleSize = Puzzle.createElem('div', [], 'puzzleSize');
-    mainContainerPuzzleSize.innerHTML = `<div class="puzzleSizeNow"><p>Размер поля ${this.size}x${this.size}</p></div>`;
+    mainContainerPuzzleSize.innerHTML = `<div class="puzzleSizeNow"><p>Puzzle size ${this.size}x${this.size}</p></div>`;
     const mainContainerPuzzleSizeOther = Puzzle.createElem('div', [], 'puzzleSizeOther');
     for (let i = 2; i <= 8; i += 1) {
-      const text = (i === 2) ? '<p>Другие размеры</p> ' : `<a class="size_puzzle" href="#">${i}x${i}</a> `;
+      const text = (i === 2) ? '<p>Other Sizes</p> ' : `<a class="size_puzzle" href="#">${i}x${i}</a> `;
       mainContainerPuzzleSizeOther.innerHTML += text;
     }
+    mainContainerPuzzleSizeOther.innerHTML += '<a class="wrapper_info__chImage">change image</a>';
     mainContainerPuzzleSize.append(mainContainerPuzzleSizeOther);
     mainContainer.append(mainContainerWrapperInfo, mainContainerWrapper, mainContainerPuzzleSize);
     const modal = Puzzle.createElem('div', [], 'modal');
-    Puzzle.modalWindow = Puzzle.createElem('div', [], 'modal_window'); // '<div class="modal_window"></div>'
+    Puzzle.modalWindow = Puzzle.createElem('div', [], 'modal_window');
     Puzzle.modalWindow.innerHTML = '<div class="modal_window__info"><p></p></div>';
     const buttonOk = Puzzle.createElem('div', [], 'modal_window__btn');
     buttonOk.innerHTML = '<button>OK</button>';
@@ -94,15 +90,13 @@ export default class Puzzle {
     const footer = Puzzle.createElem('footer', [], 'puzzle_footer');
     modal.append(Puzzle.modalWindow);
     header.append(mainContainerSettings);
-    // ######################## SCORE ###########################
-    // Puzzle.scorePage = Score.renderScorePage();
     document.body.append(header, mainContainer, footer, modal);
   }
 
   renderPuzzle(numbers = null,
     puzzleSize = null,
     image = null,
-    stepSpan = '00',
+    stepSpan = '0',
     minSpan = '00',
     secSpan = '00') {
     clearInterval(Puzzle.timer);
@@ -140,7 +134,7 @@ export default class Puzzle {
       }
       const preloader = Preloader.render();
       this.mainContainerWrapperPuzzle.append(preloader);
-      document.querySelector('.puzzleSize p').innerHTML = `Размер поля ${this.size}x${this.size}`;
+      document.querySelector('.puzzleSize p').innerHTML = `Game Size ${this.size}x${this.size}`;
     };
   }
 
@@ -184,12 +178,12 @@ export default class Puzzle {
   }
 
   changeCanvasImg() {
-    if (Puzzle.gameState === 'play') {
-      const info = 'Please, first stop and save game, then change image.';
-      Modal.drowModal(info);
-    } else if (Puzzle.gameState !== 'pause') {
+    if (Puzzle.gameState !== 'pause') {
       this.imageCanvas = Puzzle.getRandomImageNumber();
       this.renderPuzzle(null, this.size, this.imageCanvas);
+      Puzzle.gameStarted = false;
+      Puzzle.gameState = 'stop';
+      Puzzle.changePauseBtn('pause');
     }
   }
 
@@ -218,13 +212,9 @@ export default class Puzzle {
 
   static getCoords(elem) {
     const box = elem.getBoundingClientRect();
-    // eslint-disable-next-line no-restricted-globals
-    const offsetY = pageYOffset;
-    // eslint-disable-next-line no-restricted-globals
-    const offsetX = pageXOffset;
     return {
-      top: box.top + offsetY,
-      left: box.left + offsetX,
+      top: box.top,
+      left: box.left,
       width: box.width,
     };
   }
@@ -296,6 +286,7 @@ export default class Puzzle {
           resultNumbers = await this.moveContainer(selectedContainer, emptyContainer, direction);
           Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
           Puzzle.setMovesFromUser(direction);
+          this.playSound('movePuzzle.mp3');
         } else {
           resultNumbers = await this.mouseUp(event);
         }
@@ -306,17 +297,25 @@ export default class Puzzle {
             const steps = Puzzle.stepSpan.innerText;
             const secSolution = Puzzle.secSpan.innerText;
             const minSolution = Puzzle.minSpan.innerText;
+            this.playSound('victory.wav');
             const info = `Hooray! You solved the puzzle in ${minSolution}:${secSolution} and ${steps} moves`;
             Modal.drowModal(info);
             clearInterval(Puzzle.timer);
             Puzzle.gameState = 'stop';
-            Puzzle.gameStarted = 'false';
+            Puzzle.gameStarted = false;
             Score.saveBestScore(this.size, steps, minSolution, secSolution, this.imageCanvas);
           }
         }
       };
       selectedContainer.ondragstart = () => false;
     }
+  }
+
+  async playSound(sound) {
+    this.audio = new Audio();
+    this.audio.preload = 'auto';
+    this.audio.src = `./assets/sounds/${sound}`;
+    this.audio.play();
   }
 
   async mouseUp(e) {
@@ -326,6 +325,7 @@ export default class Puzzle {
       const emptyContainer = document.querySelector('#last_container');
       const direction = Puzzle.getDirection(selectedContainer, emptyContainer);
       if (direction.length > 0) {
+        this.playSound('movePuzzle.mp3');
         Puzzle.stepSpan.innerText = +Puzzle.stepSpan.innerText + 1;
         resNumbers = await this.moveContainer(selectedContainer, emptyContainer, direction);
         Puzzle.setMovesFromUser(direction);
@@ -374,7 +374,6 @@ export default class Puzzle {
     const startDate = Date.now();
     const promise = new Promise((resolve) => {
       let result;
-
       const timer = setInterval(() => {
         const timePassed = Date.now() - startDate;
         if (timePassed >= 1500) {
@@ -514,11 +513,10 @@ export default class Puzzle {
     const pauseBtn = document.querySelector('.stopGame');
     if (gameState === 'play') pauseBtn.classList.add('pause_active');
     else pauseBtn.classList.remove('pause_active');
-    pauseBtn.value = gameState.charAt(0).toUpperCase() + gameState.slice(1);
+    pauseBtn.innerText = gameState.charAt(0).toUpperCase() + gameState.slice(1);
   }
 
   async installSettings(e) {
-    // ################# stopGame #######################
     if (e.target.getAttribute('name') === 'stopGame' && Puzzle.gameState !== 'pause') {
       if (Puzzle.gameState === 'play') {
         Puzzle.changePauseBtn('play');
@@ -534,23 +532,24 @@ export default class Puzzle {
         );
       }
     }
-    if (e.target.getAttribute('name') === 'getScore') {
+    if (e.target.getAttribute('name') === 'getScore' && Puzzle.gameState !== 'pause') {
       await Score.renderScorePage();
       const stagedTable = document.querySelector('.score_container__staged_score-table');
       stagedTable.addEventListener('click', (event) => {
         if (event.target.closest('button')) {
           Puzzle.changePauseBtn('pause');
           clearInterval(Puzzle.timer);
-          const id = event.target.parentNode.childNodes[0].innerText - 1;
+          const id = event.target.parentNode.parentNode.childNodes[0].innerText - 1;
           const localstoreStagedScore = JSON.parse(localStorage.getItem('stagedScore'));
           Puzzle.movesFromUser = [];
           Puzzle.movesForSolution = localstoreStagedScore[id].solution;
+          this.imageCanvas = localstoreStagedScore[id].imageNumber;
           this.renderPuzzle(
             localstoreStagedScore[id].numbers,
             localstoreStagedScore[id].size,
             localstoreStagedScore[id].imageNumber,
           );
-          Score.closeScore();
+          Score.closeScore(e);
           Puzzle.gameState = 'play';
           Puzzle.gameStarted = true;
           Puzzle.timer = Puzzle.setTimer(
@@ -558,9 +557,11 @@ export default class Puzzle {
             localstoreStagedScore[id].min,
             localstoreStagedScore[id].sec,
           );
-          // console.log(localstoreStagedScore[id]);
         }
       });
+    } else if (e.target.getAttribute('name') === 'getScore') {
+      const info = 'Please, wait while the puzzles are moving, then load the game!';
+      Modal.drowModal(info);
     }
   }
 

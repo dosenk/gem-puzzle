@@ -5,7 +5,6 @@ module.exports = {
     es2021: true,
     node: true,
   },
-  // parser: 'babel-eslint',
   extends: [
     'airbnb-base',
   ],
@@ -14,7 +13,5 @@ module.exports = {
     sourceType: 'module',
   },
   rules: {
-    'linebreak-style': ['off', 'windows'],
-    'no-console': ['warn'],
   },
 };

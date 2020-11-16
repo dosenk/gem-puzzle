@@ -1,4 +1,3 @@
-// import { length } from 'file-loader';
 export default class Preloader {
   static createElem(element, atributes = [], ...classes) {
     const elem = document.createElement(element);
