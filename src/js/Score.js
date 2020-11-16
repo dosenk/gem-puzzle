@@ -140,15 +140,17 @@ export default class Score {
     }
   }
 
-  static saveStagedScore(size, steps, min, sec, imageNumber, numbers) {
+  static saveStagedScore(size, steps, min, sec, imageNumber, numbers, solution) {
     let stagedScore = JSON.parse(localStorage.getItem('stagedScore'));
     if (stagedScore === null) {
       stagedScore = [];
     }
-    stagedScore.push({
-      size, steps, min, sec, imageNumber, numbers,
+    stagedScore.unshift({
+      size, steps, min, sec, imageNumber, numbers, solution,
     });
-    if (stagedScore > 10) stagedScore.pop();
+    // console.log(stagedScore);
+    if (stagedScore.length > 10) stagedScore.pop();
     localStorage.setItem('stagedScore', JSON.stringify(stagedScore));
+    // localStorage.clear();
   }
 }

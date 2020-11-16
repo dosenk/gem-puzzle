@@ -10,6 +10,7 @@ export default class Puzzle {
     Puzzle.gameState = 'stop'; // 'pause', 'play'
     Puzzle.gameStarted = false; // false - if game not started or game the finished
     Puzzle.movesFromUser = [];
+    Puzzle.movesForSolution = [];
     this.directions = new Map(
       [
         ['D_UP', 'top'],
@@ -37,10 +38,10 @@ export default class Puzzle {
     const mainContainer = Puzzle.createElem('main', [], 'main_container');
     const header = Puzzle.createElem('header', [], 'puzzle_header');
     const mainContainerSettings = Puzzle.createElem('div', [], 'setting');
-    mainContainerSettings.innerHTML = '<input class=\'settingButton startGame\' name=\'startGame\' type=\'button\' value=\'Размешать и начать\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton stopGame\' name=\'stopGame\' type=\'button\' value=\'Стоп\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton saveGame\' name=\'saveGame\' type=\'button\' value=\'Сохранить\'>';
-    mainContainerSettings.innerHTML += '<input class=\'settingButton getScore\' name=\'getScore\' type=\'button\' value=\'Результаты\'>';
+    mainContainerSettings.innerHTML = '<input class=\'settingButton startGame\' name=\'startGame\' type=\'button\' value=\'Start game\'>';
+    mainContainerSettings.innerHTML += '<input class=\'settingButton stopGame\' name=\'stopGame\' type=\'button\' value=\'Pause\'>';
+    mainContainerSettings.innerHTML += '<input class=\'settingButton saveGame\' name=\'saveGame\' type=\'button\' value=\'Save\'>';
+    mainContainerSettings.innerHTML += '<input class=\'settingButton getScore\' name=\'getScore\' type=\'button\' value=\'Best score/Saved games\'>';
     mainContainerSettings.innerHTML += '<input class=\'settingButton getSolution\' name=\'getSolution\' type=\'button\' value=\'Решение\'>';
     const mainContainerWrapper = Puzzle.createElem('div', [], 'wrapper');
     const mainContainerWrapperInfo = Puzzle.createElem('div', [], 'wrapper_info');
@@ -108,10 +109,10 @@ export default class Puzzle {
     Puzzle.stepSpan.innerText = stepSpan;
     Puzzle.minSpan.innerText = minSpan;
     Puzzle.secSpan.innerText = secSpan;
-    this.image = new Image();
+    Puzzle.image = new Image();
     const imageForPuzzle = (image === null) ? this.imageCanvas : image;
-    this.image.src = `https://raw.githubusercontent.com/irinainina/image-data/master/box/${imageForPuzzle}.jpg`;
-    this.image.onload = () => {
+    Puzzle.image.src = `https://raw.githubusercontent.com/irinainina/image-data/master/box/${imageForPuzzle}.jpg`;
+    Puzzle.image.onload = () => {
       this.mainContainerWrapperPuzzle.innerHTML = '';
       this.innerText = '0';
       this.size = puzzleSize === null ? this.size : puzzleSize;
@@ -128,7 +129,7 @@ export default class Puzzle {
           puzzleContainer = Puzzle.createElem('div', attribute, 'wrapper_puzzle__container');
           const container = Puzzle.createElem('div', [['id', `container_${numbersForPuzzle[i]}`]], 'container');
           const canvas = Puzzle.createElem('canvas', [['width', `${sizeCanvas}`], ['height', `${sizeCanvas}`]], 'wrapper_puzzle__canvas');
-          this.drowCanvasImg(canvas, numbersForPuzzle[i], this.size);
+          Puzzle.drowCanvasImg(canvas, numbersForPuzzle[i], this.size);
           const containerText = Puzzle.createElem('p', [], 'wrapper_puzzle__container-text');
           containerText.innerText = numbersForPuzzle[i];
           container.append(containerText, canvas);
@@ -156,13 +157,13 @@ export default class Puzzle {
     return sizeCanvas - 1;
   }
 
-  drowCanvasImg(canvas, i, size) {
+  static drowCanvasImg(canvas, i, size) {
     const idx = i - 1;
     const lengthPuzzle = size * size;
     const cnv = canvas;
     const context = cnv.getContext('2d');
-    const sourceWidth = this.image.width / size;
-    const sourceHeight = this.image.height / size;
+    const sourceWidth = Puzzle.image.width / size;
+    const sourceHeight = Puzzle.image.height / size;
     const sourceX = Puzzle.getX(idx, lengthPuzzle) * sourceWidth;
     const sourceY = Puzzle.getY(idx, lengthPuzzle) * sourceHeight;
     const destWidth = canvas.width;
@@ -170,7 +171,7 @@ export default class Puzzle {
     const destX = 0;
     const destY = 0;
     context.drawImage(
-      this.image,
+      Puzzle.image,
       sourceX,
       sourceY,
       sourceWidth,
@@ -309,6 +310,7 @@ export default class Puzzle {
             Modal.drowModal(info);
             clearInterval(Puzzle.timer);
             Puzzle.gameState = 'stop';
+            Puzzle.gameStarted = 'false';
             Score.saveBestScore(this.size, steps, minSolution, secSolution, this.imageCanvas);
           }
         }
@@ -508,40 +510,41 @@ export default class Puzzle {
     numbers.forEach((elem) => this.mainContainerWrapperPuzzle.append(elem));
   }
 
+  static changePauseBtn(gameState) {
+    const pauseBtn = document.querySelector('.stopGame');
+    if (gameState === 'play') pauseBtn.classList.add('pause_active');
+    else pauseBtn.classList.remove('pause_active');
+    pauseBtn.value = gameState.charAt(0).toUpperCase() + gameState.slice(1);
+  }
+
   async installSettings(e) {
-    // ################# saveGame #######################
-    if (e.target.getAttribute('name') === 'saveGame') {
-      let info = '';
-      if (Puzzle.gameState === 'stop' && Puzzle.gameStarted) {
-        Puzzle.gameStarted = false;
-        Score.saveStagedScore(
-          this.size,
+    // ################# stopGame #######################
+    if (e.target.getAttribute('name') === 'stopGame' && Puzzle.gameState !== 'pause') {
+      if (Puzzle.gameState === 'play') {
+        Puzzle.changePauseBtn('play');
+        Puzzle.gameState = 'stop';
+        clearInterval(Puzzle.timer);
+      } else if (Puzzle.gameStarted) {
+        Puzzle.changePauseBtn('pause');
+        Puzzle.gameState = 'play';
+        Puzzle.timer = Puzzle.setTimer(
           Puzzle.stepSpan.innerText,
           Puzzle.minSpan.innerText,
           Puzzle.secSpan.innerText,
-          this.imageCanvas,
-          Puzzle.getNumbers(),
         );
-        info = 'Game save';
-      } else {
-        const startStopWorld = Puzzle.gameStarted ? 'stop' : 'start';
-        info = `Please. First ${startStopWorld} the game, then save game!`;
       }
-      Modal.drowModal(info);
-    }
-    // ################# stopGame #######################
-    if (e.target.getAttribute('name') === 'stopGame') {
-      Puzzle.gameState = 'stop';
-      clearInterval(Puzzle.timer);
     }
     if (e.target.getAttribute('name') === 'getScore') {
       await Score.renderScorePage();
       const stagedTable = document.querySelector('.score_container__staged_score-table');
       stagedTable.addEventListener('click', (event) => {
         if (event.target.closest('button')) {
+          Puzzle.changePauseBtn('pause');
           clearInterval(Puzzle.timer);
           const id = event.target.parentNode.childNodes[0].innerText - 1;
           const localstoreStagedScore = JSON.parse(localStorage.getItem('stagedScore'));
+          Puzzle.movesFromUser = [];
+          Puzzle.movesForSolution = localstoreStagedScore[id].solution;
           this.renderPuzzle(
             localstoreStagedScore[id].numbers,
             localstoreStagedScore[id].size,
@@ -562,13 +565,16 @@ export default class Puzzle {
   }
 
   setPuzzleSize(e) {
-    if (e.target.classList.contains('size_puzzle')) {
-      if (Puzzle.gameState === 'play') {
-        const info = 'First stop and save the game';
-        Modal.drowModal(info);
-      } else if (Puzzle.gameState !== 'pause') {
-        this.renderPuzzle(null, e.target.innerText[0]);
-      }
+    if (e.target.classList.contains('size_puzzle') && Puzzle.gameState !== 'pause') {
+      this.renderPuzzle(null, e.target.innerText[0]);
+      Puzzle.movesFromUser = [];
+      Puzzle.movesForSolution = [];
+      Puzzle.stepSpan.innerText = '0';
+      Puzzle.minSpan.innerText = '00';
+      Puzzle.secSpan.innerText = '00';
+      Puzzle.gameStarted = false;
+      Puzzle.gameState = 'stop';
+      clearInterval(Puzzle.timer);
     }
   }
 

@@ -9,9 +9,10 @@ export default class Preloader {
     return elem;
   }
 
-  static start() {
+  static async start() {
     const preloader = document.querySelector('.preloader');
     preloader.style.display = 'flex';
+    return true;
   }
 
   static stop() {

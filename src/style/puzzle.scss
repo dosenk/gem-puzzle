@@ -71,6 +71,7 @@ main {
     margin-top: 15px;
     margin-bottom: 15px;
     &_puzzle {
+      position: relative;
       width: 600px;
       height: 600px;
       text-shadow: 1px 1px 1px white, 1em 1em 2em white;

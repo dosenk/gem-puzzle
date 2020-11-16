@@ -1,6 +1,7 @@
 import Puzzle from './Puzzle';
 import Preloader from './Preloader';
 import Modal from './Modal';
+import Score from './Score';
 
 export default class State extends Puzzle {
   constructor(size, SOLUTIONS) {
@@ -10,59 +11,70 @@ export default class State extends Puzzle {
     this.size = size;
     this.solutions = SOLUTIONS;
     this.moveForShuffle = [];
-    this.reverseMoveForShuffle = [];
+    // this.reverseMoveForShuffle = [];
   }
 
   addListenerState() {
     document.querySelector('.getSolution').addEventListener('click', (e) => this.doCorrectSolution(e));
     document.querySelector('.startGame').addEventListener('click', (e) => this.shufflePuzzles(e));
+    document.querySelector('.saveGame').addEventListener('click', (e) => State.saveGame(e));
   }
 
   async doCorrectSolution() {
     if (Puzzle.gameState === 'stop') {
       clearTimeout(Puzzle.timer);
       let result = [];
-      const numbers = await Puzzle.getNumbers();
+      const numbers = Puzzle.getNumbers();
       const trueSolution = this.solutions[Math.sqrt(numbers.length) - 3];
-      if (numbers.length > 16) {
-        result.path = this.reverseMoveForShuffle;
-        result.path.unshift(...Puzzle.movesFromUser);
-        result.foundPath = true;
-      } else {
-        result = await this.findPath(numbers, trueSolution);
-      }
-      Preloader.start();
+      await Preloader.start();
       setTimeout(async () => {
+        if (numbers.length > 16) {
+          // console.log(Puzzle.movesForSolution);
+          result.path = Puzzle.movesForSolution;
+          result.path.unshift(...Puzzle.movesFromUser);
+          if (result.path.length > 0) {
+            result.foundPath = true;
+          } else {
+            result.foundPath = false;
+            result.info = 'No solution required! Please, start the game :)';
+          }
+        } else {
+          result = await this.findPath(numbers, trueSolution);
+        }
+        Preloader.stop();
         if (await result.foundPath) {
-          Preloader.stop();
           await this.moveContainerSolution(result.path, numbers);
+          Puzzle.movesForSolution = [];
+          Puzzle.movesFromUser = [];
+          Puzzle.gameState = 'stop';
+          Puzzle.gameStarted = false;
         } else {
           Modal.drowModal(result.info);
         }
-      }, 10);
-      Puzzle.gameState = 'stop';
+      }, 100);
     } else if (Puzzle.gameState !== 'pause') {
-      const info = 'First stop and save the game';
+      const info = 'First press pause or save the game';
       Modal.drowModal(info);
     }
   }
 
   async shufflePuzzles() {
     if (Puzzle.gameState === 'play') {
-      const info = 'First stop and save the game';
+      const info = 'First click pause or save the game';
       Modal.drowModal(info);
     } else if (Puzzle.gameState !== 'pause') {
+      Puzzle.changePauseBtn('pause');
       Puzzle.gameStarted = true;
       const numbers = await Puzzle.getNumbers();
-      this.moveForShuffle = [];
-      this.reverseMoveForShuffle = [];
-      Puzzle.movesFromUser = [];
+      Puzzle.movesForSolution.unshift(...Puzzle.movesFromUser);
       await this.mix(numbers);
       const path = this.moveForShuffle.slice();
       const resMove = await this.moveContainerSolution(path, numbers);
       if (resMove) {
         Puzzle.timer = Puzzle.setTimer();
         Puzzle.gameState = 'play';
+        Puzzle.movesFromUser = [];
+        this.moveForShuffle = [];
       }
     }
   }
@@ -270,7 +282,7 @@ export default class State extends Puzzle {
     if (this.moveForShuffle.length === 0) {
       random = State.randomInteger(1, newArray.length);
       this.moveForShuffle.push(arrayMoves[random - 1]);
-      this.reverseMoveForShuffle.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
+      Puzzle.movesForSolution.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
     } else {
       random = State.randomInteger(1, newArray.length);
       const randomMove = arrayMoves[random - 1];
@@ -282,10 +294,10 @@ export default class State extends Puzzle {
         arrayMoves.splice(random - 1, 1);
         random = State.randomInteger(1, newArray.length);
         this.moveForShuffle.push(arrayMoves[random - 1]);
-        this.reverseMoveForShuffle.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
+        Puzzle.movesForSolution.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
       } else {
         this.moveForShuffle.push(arrayMoves[random - 1]);
-        this.reverseMoveForShuffle.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
+        Puzzle.movesForSolution.unshift(Puzzle.reverseMove(arrayMoves[random - 1]));
       }
     }
     return newArray[random - 1];
@@ -294,5 +306,36 @@ export default class State extends Puzzle {
   static randomInteger(min, max) {
     const rand = min - 0.5 + Math.random() * (max - min + 1);
     return Math.round(rand);
+  }
+
+  // ################# saveGame #######################
+  static saveGame(e) {
+    if (e.target.getAttribute('name') === 'saveGame' && Puzzle.gameState !== 'pause') {
+      let info = '';
+      const imgCanvasSrc = Puzzle.image.src;
+      const imgCanvas = imgCanvasSrc.slice(imgCanvasSrc.lastIndexOf('/') + 1, -4);
+      const numbers = Puzzle.getNumbers();
+      const size = Math.sqrt(numbers.length);
+      Puzzle.movesForSolution.unshift(...Puzzle.movesFromUser);
+      if (Puzzle.gameState === 'play') {
+        Puzzle.gameState = 'stop';
+        Puzzle.changePauseBtn('play');
+        clearInterval(Puzzle.timer);
+        Score.saveStagedScore(
+          size,
+          Puzzle.stepSpan.innerText,
+          Puzzle.minSpan.innerText,
+          Puzzle.secSpan.innerText,
+          imgCanvas,
+          numbers,
+          Puzzle.movesForSolution,
+        );
+        info = 'Game saved';
+      } else {
+        const startStopWorld = Puzzle.gameStarted ? 'stop' : 'start';
+        info = `Please. First ${startStopWorld} the game, then save game!`;
+      }
+      Modal.drowModal(info);
+    }
   }
 }
