@@ -68,6 +68,7 @@ main {
     align-items: center;
     justify-content: center;
     &__container {
+      position: relative;
       width: 300px;
       display: flex;
       justify-content: stretch;
@@ -75,6 +76,23 @@ main {
       text-shadow: 1px 1px 1px black, 1em 1em 2em gray;
       font-size: 25px;
       font-weight: 900;
+      .wrapper_info__sound {
+        position: absolute;
+        right: -30px;
+        top: 2px;
+        width: 20px;
+        height: 20px;
+        background-image: url("./../assets/images/volume-off.png");
+        background-repeat: no-repeat;
+        background-size: cover;
+        cursor: pointer;
+        @media screen and (max-width: 767px) {
+          right: -5px;
+        }
+      }
+      .sound-active {
+        background-image: url("./../assets/images/volume-on.png");
+      }
     }
     &__chImage {
       position: absolute;

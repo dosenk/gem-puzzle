@@ -23,6 +23,7 @@ export default class Puzzle {
     this.imageCanvas = Puzzle.getRandomImageNumber();
     this.speed = 10;
     this.moveArr = [];
+    this.soundStatus = false; // true - on
   }
 
   static createElem(element, atributes = [], ...classes) {
@@ -46,6 +47,7 @@ export default class Puzzle {
     const mainContainerWrapper = Puzzle.createElem('div', [], 'wrapper');
     const mainContainerWrapperInfo = Puzzle.createElem('div', [], 'wrapper_info');
     const mainContainerWrapperInfoContainer = Puzzle.createElem('div', [], 'wrapper_info__container');
+    const mainContainerWrapperInfoSound = Puzzle.createElem('div', [], 'wrapper_info__sound');
     const mainContainerWrapperInfoContainerSteps = Puzzle.createElem('p', [], 'wrapper_info__container');
     mainContainerWrapperInfoContainerSteps.innerText = 'Steps: ';
     Puzzle.stepSpan = Puzzle.createElem('span', [['id', 'wrapper_info__steps']], 'info_steps');
@@ -67,8 +69,11 @@ export default class Puzzle {
     mainContainerWrapperInfoContainer.append(
       mainContainerWrapperInfoContainerSteps,
       mainContainerWrapperInfoContainerTime,
+      mainContainerWrapperInfoSound,
     );
-    mainContainerWrapperInfo.append(mainContainerWrapperInfoContainer);
+    mainContainerWrapperInfo.append(
+      mainContainerWrapperInfoContainer,
+    );
     this.mainContainerWrapperPuzzle = Puzzle.createElem('div', [], 'wrapper_puzzle');
     mainContainerWrapper.append(this.mainContainerWrapperPuzzle);
     const mainContainerPuzzleSize = Puzzle.createElem('div', [], 'puzzleSize');
@@ -193,9 +198,19 @@ export default class Puzzle {
 
   addListener() {
     document.querySelector('.puzzleSize').addEventListener('click', (e) => this.setPuzzleSize(e));
+    document.querySelector('.wrapper_info__sound').addEventListener('click', (e) => this.changeSoundStatus(e));
     document.querySelector('.setting').addEventListener('click', (e) => this.installSettings(e));
     document.querySelector('.wrapper_info__chImage').addEventListener('click', () => this.changeCanvasImg());
     this.mainContainerWrapperPuzzle.addEventListener('mousedown', (e) => this.dragAndDrop(e));
+  }
+
+  changeSoundStatus(e) {
+    this.soundStatus = !this.soundStatus;
+    if (this.soundStatus) {
+      e.target.classList.add('sound-active');
+    } else {
+      e.target.classList.remove('sound-active');
+    }
   }
 
   static getNumbers() {
@@ -312,10 +327,12 @@ export default class Puzzle {
   }
 
   async playSound(sound) {
-    this.audio = new Audio();
-    this.audio.preload = 'auto';
-    this.audio.src = `./assets/sounds/${sound}`;
-    this.audio.play();
+    if (this.soundStatus) {
+      this.audio = new Audio();
+      this.audio.preload = 'auto';
+      this.audio.src = `./assets/sounds/${sound}`;
+      this.audio.play();
+    }
   }
 
   async mouseUp(e) {
